@@ -6,193 +6,172 @@ context + decisions). This file is the short-form continuation guide.
 
 ---
 
-## What's done
+## Session log
 
-- **Step 1** — Package manager switched to pnpm.
-  - `pnpm install` succeeded, 98 packages, `pnpm-lock.yaml` exists.
-  - `vite-plugin-singlefile` removed (no longer used).
-- **Step 3** — `vite.config.js` rewritten.
-  - Singlefile plugin dropped.
-  - `base: '/fitness_app/'` for GitHub Pages subpath.
-  - `manualChunks` splits Chart.js + Quagga into vendor chunks.
-  - `esbuild.drop: ['console', 'debugger']` for production builds.
-  - `cssCodeSplit: true`.
-- **Step 6** — `.github/workflows/deploy.yml` created with `workflow_dispatch`
-  trigger only (manual). Uses pnpm + `actions/deploy-pages@v4`.
-- **Step 7** — `CLAUDE.md` replaced with minimal 23-line version.
+- **Session 1** — Steps 1, 3, 6, 7 done (pnpm switch, Vite config, GH Action
+  scaffold, minimal CLAUDE.md). Infrastructure only.
+- **Session 2** — Step 2 begun. Slices 1, 2, 3 complete + first module of
+  Slice 4 (fasting). `index.html` still unchanged (1.88 MB).
 
-## State of the repo right now
-
-- `index.html` (1.88 MB monolith) is **unchanged** and still the live site.
-- Nothing is committed yet — run `git status` to review the diff before
-  committing.
-- GitHub Pages source must stay on "Deploy from a branch: main / root" until
-  the rewrite ships. Switching to "GitHub Actions" now would deploy the
-  monolith with no benefit.
-
----
-
-## What's left
-
-### Step 2 — Full rewrite of `index.html` into `src/` (biggest)
-
-Read each section of `index.html` (~40k lines), understand intent, re-author
-as clean module code. Final `index.html` becomes a ~30-line shell.
-
-Target `src/` layout:
+## What's done in `src/`
 
 ```
 src/
-  main.js              — bootstrap: load state, register SW, mount UI
-  styles/
-    base.css           — variables, typography, layout primitives
-    components.css     — buttons, cards, modals, tabs
+  api/claudeProxy.js           ✓ (scaffold, future Claude use)
   data/
-    recipes.js         — breakfastRecipes + lunchRecipes + dinnerRecipes
-    snacks.js          — snackOptions (currently lexically scoped ~line 4975)
-    taxonomy.js        — INGREDIENT_TAXONOMY (file exists, populate)
-    exercises.js       — cardio + strength databases
+    breakfasts.js              ✓ 1,038 LOC, from index.html:3933-4967
+    snacks.js                  ✓ 320 LOC, from index.html:4973-5290
+    exercises.js               ✓ 475 LOC, cardio + strength
+    foods.js                   ✓ 128 LOC, quick-add foods
+    lunches.js                 ✓ 688 LOC, from index.html:5901-6585
+    dinners.js                 ✓ 2,012 LOC, from index.html:6588-8592 (was `const recipes`)
+    taxonomy.js                ✓ INGREDIENT_TAXONOMY for vegan classifier
   features/
-    diet.js            — canonicalDietType, classifyVegan, multiwordHit (exists, expand)
-    budget.js          — getBudget, setBudget, cascade (exists, expand)
-    diary.js           — food logging, recentFoods, favoriteFoods
-    plan.js            — generateOptimalWeek, rehydrateMealMethods
-    progress.js        — weight log, photo storage, charts
-    shopping.js        — shopping list generation
-    fasting.js         — fasting state machine
+    budget.js                  ✓ getBudget / setBudget cascade
+    diet.js                    ✓ canonicalDietType + classifyForVegan
+    fasting.js                 ✓ NEW — state machine + persistence (slice 4)
   state/
-    profile.js         — profile load/save (exists)
-    appState.js        — central state object, localStorage persistence (exists)
-  ui/
-    render.js          — main render() orchestrator + tab routing
-    home.js, diary.js, plan.js, progress.js, shopping.js, settings.js
-    modals.js          — profile setup, food picker, weekly plan editor (lazy)
-  pwa/
-    sw.js              — service worker (offline cache)
+    profile.js                 ✓ load/save/migrate (budget triple backfill)
+    appState.js                ✓ load/save/migrate + ensure() lazy-init helper
+  main.js                      ✓ Chart + Quagga shim only (rest comes in slice 8)
 ```
 
-Rules:
+## What's still in the monolith only
 
-- **Behavior-preserving.** Every current feature must work after rewrite.
-- **No version-patch noise.** Delete every `__sorrelV16XXLoaded` guard, every
-  `__v16XXWrapped` flag, every smoke suite, every wrapper chain.
-- **No `console.log` spam.** Remove all 420 dev logs.
-- **Lazy-load tabs.** Dynamic `import()` per tab; initial load fetches only
-  Home shell.
-- **Preserve food ontology.** Keep `canonicalDietType()` indirection, 5-state
-  vegan classifier, longest-phrase-first plant-confirmed scan, required UX
-  copy: "No obvious animal-derived ingredients found. This is not a vegan
-  certification."
-- **Preserve budget cascade.** `getBudget()` / `setBudget(v)` remain the only
-  way to read/write the three budget fields (`weeklyBudget`,
-  `weeklyGroceryBudgetTarget`, `budgetTarget`).
+- All UI rendering (~10,000 lines of render functions)
+- All event handlers
+- Inline modal HTML
+- Side-effect features not yet extracted:
+  - Diary (food-diary localStorage, ~line 10781)
+  - Plan (week plan generation, meal rotation)
+  - Progress (weight log, photos, charts)
+  - Shopping (list generation, store assignments, delivery)
+  - Training (ELITE_PROTOCOL_DATABASE at 22757, exercise logging)
+- CSS (87 KB inline `<style>` block at lines 19-2614)
+- 24 smoke test functions (~65 KB)
+- 420 `console.log` calls
+- Patch IIFEs (v1.6.10 → v1.6.31 versioned guards + wrapper chains)
+- Remaining data tables not yet extracted:
+  - `ingredientDatabase` (index.html:8595)
+  - `recipeIngredients` (index.html:8730)
+  - `ELITE_PROTOCOL_DATABASE` (index.html:22757)
+  - `ingredientSubstitutions` (index.html:27338)
+  - `deliveryProviders` (index.html:27666)
+  - `storeInfo` (index.html:28041)
+  - `OFF_CONFIG` (index.html:11525) — Open Food Facts
+  - `AI_PHOTO_CONFIG` (index.html:11947) — AI photo
+  - `analyticsState` (index.html:14499)
 
-Recommended order during rewrite:
+## Design decisions made (don't relitigate)
 
-1. State (`state/profile.js`, `state/appState.js`) — already partially scaffolded.
-2. Data tables (`data/recipes.js`, `data/snacks.js`, `data/taxonomy.js`,
-   `data/exercises.js`) — pure data, easy lift.
-3. Pure feature logic (`features/diet.js`, `features/budget.js`,
-   `features/fasting.js`) — pure functions, easy to verify.
-4. Feature logic with side effects (`features/diary.js`, `features/plan.js`,
-   `features/progress.js`, `features/shopping.js`).
-5. UI orchestration (`ui/render.js`, per-tab views).
-6. Styles (`styles/base.css`, `styles/components.css`) extracted from the
-   inline `<style>` block at lines 19–2614.
-7. Modals (`ui/modals.js`) — last, since they depend on every feature.
-8. Final shell `index.html` (~30 lines).
+1. **Bridge pattern.** During the refactor, modules export getters/setters.
+   `main.js` will hoist `window.profile`, `window.state`, `window.fastingState`
+   etc. after load so render code in the monolith can keep reading globals.
+   Writes funnel through module exports. This lets each slice land without
+   breaking the live app.
+2. **Behavior-preserving.** Every existing feature must work after rewrite.
+3. **No automated tests.** Manual browser smoke only.
+4. **GitHub Pages stays on `main / root`** until the rewrite ships in
+   slice 8. Workflow file is set to `workflow_dispatch` only — does not
+   auto-deploy. Switch repo Pages source to "GitHub Actions" + flip trigger
+   to `push: main` AFTER slice 8 ships.
 
-After each slice, run `pnpm run dev` and verify the slice's feature works in
-the browser.
+## Remaining slices for Step 2
 
-### Step 4 — PWA basics
+### Slice 4 (in progress) — side-effect features
 
-- `public/manifest.webmanifest`: name, short_name, icons (192/512),
-  `display: standalone`, `start_url: '.'`, theme/background colors.
-- `src/pwa/sw.js`: cache app shell + chunks on install; network-first for
-  navigation, cache-first for assets, stale-while-revalidate elsewhere.
-- Register service worker in `src/main.js` on load.
+- ✓ `src/features/fasting.js` — done (state + pure math, no DOM)
+- ☐ `src/features/diary.js` — food logging, `food-diary` localStorage,
+  recentFoods, favoriteFoods. Monolith ~line 10781-11525.
+- ☐ `src/features/plan.js` — generateOptimalWeek, rehydrateMealMethods,
+  breakfastSwaps, week skeleton.
+- ☐ `src/features/progress.js` — weightLog, weight charts, photo storage
+  (separate `progress-photos` localStorage key, ~line 15215).
+- ☐ `src/features/shopping.js` — shopping list generation,
+  storeAssignments, delivery providers integration.
+- ☐ `src/features/training.js` — exercise log, ELITE_PROTOCOL_DATABASE,
+  workout rendering data.
+- ☐ Extract remaining data tables to `src/data/`:
+  - `ingredients.js` ← `ingredientDatabase` + `recipeIngredients`
+  - `protocols.js` ← `ELITE_PROTOCOL_DATABASE`
+  - `substitutions.js` ← `ingredientSubstitutions`
+  - `providers.js` ← `deliveryProviders` + `storeInfo`
+  - `off.js` ← `OFF_CONFIG` (Open Food Facts cache config)
 
-### Step 5 — Export / Import backup buttons in Settings
+Recommended order within slice 4: data tables first (pure copy-paste, fast),
+then diary, then plan, then progress, then shopping, then training.
 
-- **Export**: serialize `localStorage` → JSON → Blob download named
-  `sorrel-backup-YYYY-MM-DD.json`.
-- **Import**: file picker → `confirm()` dialog → overwrite `localStorage` →
-  reload.
+### Slice 5 — UI orchestration + per-tab views
 
-### Final flip — enable auto-deploy
+Build `src/ui/`:
+- `render.js` — main `render()` orchestrator + tab routing
+- `home.js`, `diary.js`, `plan.js`, `progress.js`, `shopping.js`,
+  `settings.js`, `training.js`
+- Lazy-import each on first tab click via dynamic `import()`.
 
-Only after Step 2 + Step 4 + Step 5 are done and `pnpm run preview` shows the
-app working:
+### Slice 6 — CSS extraction
 
-1. Edit `.github/workflows/deploy.yml`: change trigger from
-   `workflow_dispatch` to:
-   ```yaml
-   on:
-     push:
-       branches: [main]
-   ```
-2. In GitHub repo Settings → Pages, change Source to "GitHub Actions".
-3. Push to main; verify the live site updates.
+Pull lines 19-2614 of `index.html` into `src/styles/base.css` +
+`src/styles/components.css`. Vite minifies on build.
 
----
+### Slice 7 — Modals (lazy-loaded)
 
-## Files to delete during Step 2
+- `src/ui/modals.js` — profile setup, food picker, weekly plan editor.
+- Each modal's HTML template lives here; lazy-injected on first open.
 
-- `sorrel_v1.6.31_final.html` — duplicate backup of the monolith.
-- `test/` — entire directory (`test/smoke-runner.js`).
-- `jsdom` devDependency: `pnpm remove jsdom`.
-- All `sorrelRunV16XXSmoke` functions inside `index.html`.
+### Slice 8 — Shell `index.html` + final swap
 
-## Files to keep untouched
+Replace `index.html` with the ~30-line shell (see plan file for exact shape).
+Wire `main.js`:
+1. Load state + profile, run migrations
+2. Hoist `window.profile`, `window.state`, `window.fastingState` (bridge)
+3. Import critical CSS
+4. Mount UI
 
-- `server/proxy.js` — Cloudflare Worker for future Claude API; not yet wired.
-- `wrangler.toml` — matches the above.
-- `src/api/claudeProxy.js` — client wrapper for future use.
-- `ARCHITECTURE_UPGRADE.md` — historical roadmap; superseded by the plan but
-  worth keeping as context.
+Delete from working tree:
+- `sorrel_v1.6.31_final.html`
+- `test/` folder
+- All `__sorrelV16XXLoaded` and `__v16XXWrapped` flags (gone with index.html)
 
----
+## After Step 2 (in any order)
+
+- **Step 4 — PWA basics**: `public/manifest.webmanifest`, `src/pwa/sw.js`,
+  service worker registration in `main.js`.
+- **Step 5 — Export/Import backup** in Settings.
+- **Final flip**: change `.github/workflows/deploy.yml` trigger from
+  `workflow_dispatch` to `push: main`; switch repo Pages source to
+  "GitHub Actions".
 
 ## Quick verification commands
 
 ```bash
-# Build the current state
+# Build current state
 pnpm run build
 
-# Serve the built dist/ locally
+# Serve built dist/ locally
 pnpm run preview
 
-# Start dev server with hot reload (after rewrite begins)
+# Dev server with hot reload (once main.js wires up real modules)
 pnpm run dev
 
 # Check what's about to be committed
 git status
-git diff
+git diff --stat
 ```
 
 ## Key file paths
 
-- Plan (full context): `C:\Users\abark\.claude\plans\how-would-you-improve-mighty-rabbit.md`
+- Plan (canonical): `C:\Users\abark\.claude\plans\how-would-you-improve-mighty-rabbit.md`
 - This handoff: `NEXT_SESSION.md` (repo root)
-- Project instructions: `CLAUDE.md` (repo root)
-- Monolith to dissect: `index.html`
-- Architecture history: `ARCHITECTURE_UPGRADE.md`
+- Project instructions: `CLAUDE.md`
+- Monolith (still live): `index.html`
 - Build config: `vite.config.js`
 - Deploy workflow: `.github/workflows/deploy.yml`
 
----
-
-## Bloat targets (from plan)
+## File-size targets (unchanged)
 
 | State | Initial payload |
 |---|---|
 | Current monolith | 1.88 MB |
-| After Step 2 + Vite build | ~200–300 KB initial chunk, rest lazy |
+| After Slice 8 + Vite build | ~200–300 KB initial chunk, rest lazy |
 | After Step 4 (service worker first cache) | ~0 KB on repeat visit |
-
-## Database
-
-**No backend DB for MVP.** `localStorage` + `IndexedDB` (for binary blobs)
-stays sole storage. Backup buttons (Step 5) provide durability without infra.
-Revisit only when multi-device sync becomes a real requirement.

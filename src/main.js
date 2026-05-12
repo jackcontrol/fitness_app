@@ -1,14 +1,17 @@
+import './styles/main.css';
+
 import Chart from 'chart.js/auto';
 import Quagga from '@ericblade/quagga2';
 
 import {
   getProfile, saveProfile, clearProfile,
-  loadState, saveState, defaultState,
+  loadState, saveState, defaultState, ensure,
 } from './state/index.js';
 
 import {
   canonicalDietType, canonicalAllergens, classifyForVegan,
   getBudget, setBudget,
+  fasting, diary, plan, progress, training, customFoods,
 } from './features/index.js';
 
 window.Chart = Chart;
@@ -16,9 +19,10 @@ window.Quagga = Quagga;
 
 window.Sorrel = {
   getProfile, saveProfile, clearProfile,
-  loadState, saveState, defaultState,
+  loadState, saveState, defaultState, ensure,
   canonicalDietType, canonicalAllergens, classifyForVegan,
   getBudget, setBudget,
+  fasting, diary, plan, progress, training, customFoods,
 };
 
 function bootstrap() {
