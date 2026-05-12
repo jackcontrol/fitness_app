@@ -202,7 +202,7 @@ export const cardioDatabase = {
 };
 
 // Strength training exercises with muscle groups
-const strengthDatabase = {
+export const strengthDatabase = {
   // CHEST
   bench_press: { 
     name: 'Bench Press (Barbell)', 

@@ -14,6 +14,8 @@ import {
   fasting, diary, plan, progress, training, customFoods,
 } from './features/index.js';
 
+import './ui/topbanner.js';
+
 window.Chart = Chart;
 window.Quagga = Quagga;
 

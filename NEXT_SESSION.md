@@ -11,7 +11,15 @@ context + decisions). This file is the short-form continuation guide.
 - **Session 1** — Steps 1, 3, 6, 7 done (pnpm switch, Vite config, GH Action
   scaffold, minimal CLAUDE.md). Infrastructure only.
 - **Session 2** — Step 2 begun. Slices 1, 2, 3 complete + first module of
-  Slice 4 (fasting). `index.html` still unchanged (1.88 MB).
+  Slice 4 (fasting).
+- **Session 3** — Slice 4 substantially done (fasting, diary, plan, progress,
+  training, customFoods + 5 more data tables + utils). Slice 6 (CSS extract)
+  done. `index.html` still 1.88 MB — shell-swap is slice 8.
+- **Session 4** — Slice 5 started. Plan revised to match actual tab inventory
+  (8 real tabs: plan/diary/exercise/progress/shopping/analytics/premium/routine —
+  no home/settings tabs). Lifted 6 tabs: topbanner, premium, routine, analytics,
+  progress, exercise. Build green throughout. `src/ui/` modules sit idle —
+  monolith still owns runtime until slice 8.
 
 ## What's done in `src/`
 
@@ -19,56 +27,93 @@ context + decisions). This file is the short-form continuation guide.
 src/
   api/claudeProxy.js           ✓ (scaffold, future Claude use)
   data/
+    api-config.js              ✓ OFF_CONFIG + AI_PHOTO_CONFIG
     breakfasts.js              ✓ 1,038 LOC, from index.html:3933-4967
-    snacks.js                  ✓ 320 LOC, from index.html:4973-5290
-    exercises.js               ✓ 475 LOC, cardio + strength
-    foods.js                   ✓ 128 LOC, quick-add foods
-    lunches.js                 ✓ 688 LOC, from index.html:5901-6585
-    dinners.js                 ✓ 2,012 LOC, from index.html:6588-8592 (was `const recipes`)
-    taxonomy.js                ✓ INGREDIENT_TAXONOMY for vegan classifier
+    dinners.js                 ✓ 2,012 LOC, from index.html:6588-8592
+    exercises.js               ✓ cardio + strength, 475 LOC
+    foods.js                   ✓ quick-add foods, 128 LOC
+    ingredients.js             ✓ ingredientDatabase + recipeIngredients
+    lunches.js                 ✓ 688 LOC
+    protocols.js               ✓ ELITE_PROTOCOL_DATABASE
+    providers.js               ✓ deliveryProviders + storeInfo
+    snacks.js                  ✓ 320 LOC
+    substitutions.js           ✓ ingredientSubstitutions
+    taxonomy.js                ✓ INGREDIENT_TAXONOMY (vegan classifier)
   features/
     budget.js                  ✓ getBudget / setBudget cascade
+    customFoods.js             ✓ custom-foods LS key
+    diary.js                   ✓ food-diary LS key + entry CRUD
     diet.js                    ✓ canonicalDietType + classifyForVegan
-    fasting.js                 ✓ NEW — state machine + persistence (slice 4)
+    fasting.js                 ✓ fasting-state LS key + streak math
+    index.js                   ✓ barrel: re-exports + namespaced features
+    plan.js                    ✓ pure mutations over appState
+    progress.js                ✓ progress-photos LS key + weight tracking
+    training.js                ✓ exercise-log LS key + CRUD
   state/
-    profile.js                 ✓ load/save/migrate (budget triple backfill)
-    appState.js                ✓ load/save/migrate + ensure() lazy-init helper
-  main.js                      ✓ Chart + Quagga shim only (rest comes in slice 8)
+    appState.js                ✓ tracker-state + ensure() lazy-init
+    index.js                   ✓ barrel
+    profile.js                 ✓ user-profile + budget triple migration
+  styles/
+    main.css                   ✓ 1,327 lines extracted from <style> blocks
+  ui/                          ✓ Slice 5 in progress
+    topbanner.js               ✓ priority-cascade banner (recovery/trial/weekly/baseline)
+    premium.js                 ✓ fasting UI + photo grid + custom foods cards
+    routine.js                 ✓ circadian routine (wake/bedtime + sunlight)
+    analytics.js               ✓ weight/calorie/macro/exercise charts (Chart.js)
+    progress.js                ✓ weight summary + pattern badge + photo grid
+    exercise.js                ✓ cardio/strength log + rest timer + byset session
+    render.js                  ✓ skeleton (dynamic-import tab map; not yet wired)
+  utils/
+    dates.js                   ✓ todayISO / toLocalISO / daysBetween
+    html.js                    ✓ escapeHtml
+  main.js                      ✓ imports CSS, hoists window.Sorrel namespace
 ```
 
-## What's still in the monolith only
+## What's still in the monolith
 
-- All UI rendering (~10,000 lines of render functions)
-- All event handlers
-- Inline modal HTML
-- Side-effect features not yet extracted:
-  - Diary (food-diary localStorage, ~line 10781)
-  - Plan (week plan generation, meal rotation)
-  - Progress (weight log, photos, charts)
-  - Shopping (list generation, store assignments, delivery)
-  - Training (ELITE_PROTOCOL_DATABASE at 22757, exercise logging)
-- CSS (87 KB inline `<style>` block at lines 19-2614)
-- 24 smoke test functions (~65 KB)
-- 420 `console.log` calls
-- Patch IIFEs (v1.6.10 → v1.6.31 versioned guards + wrapper chains)
-- Remaining data tables not yet extracted:
-  - `ingredientDatabase` (index.html:8595)
-  - `recipeIngredients` (index.html:8730)
-  - `ELITE_PROTOCOL_DATABASE` (index.html:22757)
-  - `ingredientSubstitutions` (index.html:27338)
-  - `deliveryProviders` (index.html:27666)
-  - `storeInfo` (index.html:28041)
-  - `OFF_CONFIG` (index.html:11525) — Open Food Facts
-  - `AI_PHOTO_CONFIG` (index.html:11947) — AI photo
-  - `analyticsState` (index.html:14499)
+- Diary tab render (~3,000 LOC): `renderFoodDiary`, `renderMealFoods`,
+  swipe-delete, multi-add, daily totals.
+- Plan tab render (~5,500 LOC): `updateMainPagePlanner`, grids, optimizer
+  (`runBudgetOptimization`, `suggestCheaper*`), `calculateMealRotation`.
+- Shopping tab render (~2,000 LOC): `renderDynamicShopping`, pantry toggles,
+  store assignment, delivery links.
+- Inline modal HTML (~25 KB) — slice 7.
+- Onboarding modal flow (Elite v1 assessment) — slice 7.
+- Trial/paywall system (`sorrel-trial` LS key, `showPaywallModal`) — slice 7.
+- Open Food Facts client code + barcode scanner glue (Quagga) — diary modals.
+- AI photo / voice log flows — diary modals.
+- Cross-tab helpers still in monolith: `updateStats`, `calculateDailyTotals`,
+  `updateTrainRecoveryBanner`, `getTodaysIntensityRecommendation`,
+  `showLogToast`, `showUndoToast`, `getDayData`, `getHydrationSchedule`,
+  `logSunlight`. The lifted UI modules call these via `window.*` for now.
+- 24 smoke test functions (`sorrelRunV16XXSmoke`) — delete in slice 8.
+- 420 `console.log` calls — stripped by Vite `esbuild.drop` on build.
+- Patch IIFEs (v1.6.10 → v1.6.31 versioned guards + wrapper chains) — slice 8
+  cleanup.
 
-## Design decisions made (don't relitigate)
+## Projected dist/ payload after slice 8 (shell-swap)
 
-1. **Bridge pattern.** During the refactor, modules export getters/setters.
-   `main.js` will hoist `window.profile`, `window.state`, `window.fastingState`
-   etc. after load so render code in the monolith can keep reading globals.
-   Writes funnel through module exports. This lets each slice land without
-   breaking the live app.
+| Asset | Size | Gzipped |
+|---|---|---|
+| `index.html` shell | ~3 KB | ~1 KB |
+| `index.css` | 17 KB | 4.2 KB |
+| `index.js` entry | 25 KB | 8.7 KB |
+| `vendor-chart` | 200 KB | 67 KB |
+| `vendor-quagga` | 154 KB | 44 KB |
+| `vendor` (other) | 8 KB | 4 KB |
+| **Total initial** | **~407 KB** | **~129 KB** |
+
+Down from 1.88 MB / 428 KB gzipped. Quagga is a candidate for lazy-loading
+since only the food-search-by-barcode flow needs it.
+
+## Design decisions (don't relitigate)
+
+1. **Bridge pattern.** Modules export getters/setters. `main.js` exposes
+   `window.Sorrel = { fasting, diary, plan, progress, training,
+   customFoods, ... }` namespace. After slice 8 the legacy render code that
+   reads globals can either be rewritten to use `window.Sorrel.*` OR
+   `main.js` can additionally hoist `window.profile = getProfile()` etc.
+   so existing reads don't break.
 2. **Behavior-preserving.** Every existing feature must work after rewrite.
 3. **No automated tests.** Manual browser smoke only.
 4. **GitHub Pages stays on `main / root`** until the rewrite ships in
@@ -76,64 +121,98 @@ src/
    auto-deploy. Switch repo Pages source to "GitHub Actions" + flip trigger
    to `push: main` AFTER slice 8 ships.
 
-## Remaining slices for Step 2
+## Remaining slices
 
-### Slice 4 (in progress) — side-effect features
+### Slice 5 — UI orchestration + per-tab views (biggest)
 
-- ✓ `src/features/fasting.js` — done (state + pure math, no DOM)
-- ☐ `src/features/diary.js` — food logging, `food-diary` localStorage,
-  recentFoods, favoriteFoods. Monolith ~line 10781-11525.
-- ☐ `src/features/plan.js` — generateOptimalWeek, rehydrateMealMethods,
-  breakfastSwaps, week skeleton.
-- ☐ `src/features/progress.js` — weightLog, weight charts, photo storage
-  (separate `progress-photos` localStorage key, ~line 15215).
-- ☐ `src/features/shopping.js` — shopping list generation,
-  storeAssignments, delivery providers integration.
-- ☐ `src/features/training.js` — exercise log, ELITE_PROTOCOL_DATABASE,
-  workout rendering data.
-- ☐ Extract remaining data tables to `src/data/`:
-  - `ingredients.js` ← `ingredientDatabase` + `recipeIngredients`
-  - `protocols.js` ← `ELITE_PROTOCOL_DATABASE`
-  - `substitutions.js` ← `ingredientSubstitutions`
-  - `providers.js` ← `deliveryProviders` + `storeInfo`
-  - `off.js` ← `OFF_CONFIG` (Open Food Facts cache config)
+**Active execution plan (Session 4+):**
+`C:\Users\abark\.claude\plans\read-next-session-md-and-slice5-plan-md-bright-cascade.md`.
+The older SLICE5_PLAN.md (in repo) assumed 7 tabs including `home`/`settings`;
+that doesn't match reality. The active plan has the corrected 8-tab inventory.
 
-Recommended order within slice 4: data tables first (pure copy-paste, fast),
-then diary, then plan, then progress, then shopping, then training.
+**Done so far (Session 4):**
 
-### Slice 5 — UI orchestration + per-tab views
+| # | Tab | File | LOC | Status |
+|---|---|---|---|---|
+| 5.1 | Top banner (global) | `src/ui/topbanner.js` | ~270 | ✅ |
+| 5.2 | Premium | `src/ui/premium.js` | ~170 | ✅ |
+| 5.3 | Routine | `src/ui/routine.js` | ~270 | ✅ |
+| 5.4 | Analytics | `src/ui/analytics.js` | ~470 | ✅ |
+| 5.5 | Progress | `src/ui/progress.js` | ~110 | ✅ |
+| 5.6 | Exercise | `src/ui/exercise.js` | ~580 | ✅ |
 
-Build `src/ui/`:
-- `render.js` — main `render()` orchestrator + tab routing
-- `home.js`, `diary.js`, `plan.js`, `progress.js`, `shopping.js`,
-  `settings.js`, `training.js`
-- Lazy-import each on first tab click via dynamic `import()`.
+**Remaining:**
 
-### Slice 6 — CSS extraction
+| # | Tab | Source range (monolith) | Est. LOC | Notes |
+|---|---|---|---|---|
+| 5.7 | Diary | L10865-? + L11102 etc. | ~3,000 | Biggest single tab. Lots of modal handlers. |
+| 5.8 | Plan | L10233-10791 + L15660-15919 + L16101+ | ~5,500 | Optimizer + grids + main updater. Split this across two sessions. |
+| 5.9 | Shopping | L28048+ | ~2,000 | Deferred from slice 4f. |
+| 5.10 | render.js orchestrator | Replaces `switchTab` L28442 | ~50 | Last step. Wire all tabs into single entry. |
 
-Pull lines 19-2614 of `index.html` into `src/styles/base.css` +
-`src/styles/components.css`. Vite minifies on build.
+**Bridge pattern in use:**
+
+- All state reads via `window.Sorrel.{loadState, getProfile, diary, training,
+  customFoods, progress, fasting, plan}` etc.
+- Lifted modules expose mutators on `window.*` (e.g.
+  `window.addCardioExercise`, `window.deleteCustomFood`) so monolith's inline
+  `onclick="..."` handlers keep working until slice 8.
+- Some helpers stay in monolith for now and are called via `window.*`
+  (calculateDailyTotals, updateStats, showLogToast, etc). Lift in slice 7-8.
+
+**Per-tab post-lift validation:**
+Build sanity-check only (`pnpm.cmd run build` — must compile cleanly). No
+per-tab dev runs during slice 5; monolith is still authoritative. Final
+verification session runs `pnpm preview` + tab walkthrough after 5.10.
+
+Each tab's render code should:
+- Call into `window.Sorrel.*` for data (or import directly)
+- Use `escapeHtml()` from `src/utils/html.js` for user-input safety
+- Use `todayISO()` from `src/utils/dates.js` for date strings
+- Not touch globals directly
 
 ### Slice 7 — Modals (lazy-loaded)
 
-- `src/ui/modals.js` — profile setup, food picker, weekly plan editor.
-- Each modal's HTML template lives here; lazy-injected on first open.
+Modal HTML in the monolith is inline `<div>` blocks. Move templates to
+`src/ui/modals/*.js` as template strings + open/close API. Lazy-load on
+first open. Candidates: profile setup, food search, food detail, weekly
+plan editor, photo comparison, AI photo review, voice log, custom food,
+quick log sheet, paywall, budget edit, quick start.
 
 ### Slice 8 — Shell `index.html` + final swap
 
-Replace `index.html` with the ~30-line shell (see plan file for exact shape).
-Wire `main.js`:
-1. Load state + profile, run migrations
-2. Hoist `window.profile`, `window.state`, `window.fastingState` (bridge)
-3. Import critical CSS
-4. Mount UI
+Replace `index.html` with the ~30-line shell:
 
-Delete from working tree:
-- `sorrel_v1.6.31_final.html`
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#..." />
+  <title>Sorrel</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon-192.png" />
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+```
+
+Update `src/main.js` bootstrap to:
+1. Load profile + state + diary + training + fasting + custom foods + photos
+2. Hoist `window.profile`, `window.state` (bridge for any straggler reads)
+3. Mount UI via render() orchestrator from slice 5
+4. Register service worker (slice 4 of original plan = Step 4 below)
+
+Delete:
+- `sorrel_v1.6.31_final.html` (duplicate backup of monolith)
 - `test/` folder
-- All `__sorrelV16XXLoaded` and `__v16XXWrapped` flags (gone with index.html)
+- All `__sorrelV16XXLoaded` / `__v16XXWrapped` flags (gone with index.html)
 
-## After Step 2 (in any order)
+### After Step 2 (in any order)
 
 - **Step 4 — PWA basics**: `public/manifest.webmanifest`, `src/pwa/sw.js`,
   service worker registration in `main.js`.
@@ -145,16 +224,11 @@ Delete from working tree:
 ## Quick verification commands
 
 ```bash
-# Build current state
-pnpm run build
+# Windows: use .cmd suffix when running from Git Bash. Bare `pnpm` fails.
+pnpm.cmd run build      # sanity-check after each lift
+pnpm.cmd run preview    # serve dist/ for tab walkthrough
+pnpm.cmd run dev        # hot-reload dev server
 
-# Serve built dist/ locally
-pnpm run preview
-
-# Dev server with hot reload (once main.js wires up real modules)
-pnpm run dev
-
-# Check what's about to be committed
 git status
 git diff --stat
 ```
@@ -162,16 +236,8 @@ git diff --stat
 ## Key file paths
 
 - Plan (canonical): `C:\Users\abark\.claude\plans\how-would-you-improve-mighty-rabbit.md`
-- This handoff: `NEXT_SESSION.md` (repo root)
+- This handoff: `NEXT_SESSION.md`
 - Project instructions: `CLAUDE.md`
 - Monolith (still live): `index.html`
 - Build config: `vite.config.js`
 - Deploy workflow: `.github/workflows/deploy.yml`
-
-## File-size targets (unchanged)
-
-| State | Initial payload |
-|---|---|
-| Current monolith | 1.88 MB |
-| After Slice 8 + Vite build | ~200–300 KB initial chunk, rest lazy |
-| After Step 4 (service worker first cache) | ~0 KB on repeat visit |
