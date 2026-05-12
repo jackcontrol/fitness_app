@@ -1,10 +1,42 @@
-// Sorrel entry point for Vite build
-// Replaces the two CDN <script> tags that previously loaded Chart.js and QuaggaJS.
-// Both are exposed on window so the legacy inline scripts in index.html can reach them
-// without modification.
-
 import Chart from 'chart.js/auto';
 import Quagga from '@ericblade/quagga2';
 
+import {
+  getProfile, saveProfile, clearProfile,
+  loadState, saveState, defaultState,
+} from './state/index.js';
+
+import {
+  canonicalDietType, canonicalAllergens, classifyForVegan,
+  getBudget, setBudget,
+} from './features/index.js';
+
 window.Chart = Chart;
 window.Quagga = Quagga;
+
+window.Sorrel = {
+  getProfile, saveProfile, clearProfile,
+  loadState, saveState, defaultState,
+  canonicalDietType, canonicalAllergens, classifyForVegan,
+  getBudget, setBudget,
+};
+
+function bootstrap() {
+  const profile = getProfile();
+  const state = loadState();
+  const mountIds = ['app', 'root', 'sorrel-root', 'main-content'];
+  const mount = mountIds.map(id => document.getElementById(id)).find(Boolean);
+  if (mount) {
+    const banner = document.createElement('div');
+    banner.dataset.sorrelBanner = '1';
+    banner.style.cssText = 'padding:6px 10px;font:12px ui-monospace,monospace;background:#0a7d5a;color:#fff;';
+    banner.textContent = `Sorrel modules loaded — profile: ${profile ? 'yes' : 'no'}, state keys: ${Object.keys(state).length}`;
+    mount.prepend(banner);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
