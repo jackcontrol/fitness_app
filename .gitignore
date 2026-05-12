@@ -1,0 +1,17 @@
+node_modules/
+dist/
+
+# Cloudflare Worker local dev secrets — never commit
+.dev.vars
+.env
+.env.local
+
+# Wrangler state
+.wrangler/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp

@@ -10,8 +10,10 @@
 <link href="manifest-personalized.json" rel="manifest"/>
 <title>Sorrel — v1.6.22 Week Plan Bridge Fix</title>
 <meta content="v1.6.20-functional-test-harness" name="version"/>
-<!-- Chart.js and QuaggaJS loaded via npm (see src/main.js and vite.config.js).
-     Run `npm run dev` for development or `npm run build` for a standalone dist/index.html. --><script type="module" src="/src/main.js"></script>
+<!-- Chart.js for Analytics & Charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- QuaggaJS for Barcode Scanning -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 <!-- TensorFlow.js + MobileNet were used by the legacy on-device photo classifier.
      Replaced by the Claude API photo log (callAIPhotoAnalysis); CDN scripts
      removed to save ~18MB on cold-start. The fallback openImageRecognition
@@ -12108,7 +12110,7 @@ Be honest about uncertainty — pick reasonable midpoint estimates. If the photo
 Return ONLY valid JSON in this exact format, no other text:
 {"foods": [{"name": "...", "servingDescription": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0}]}`;
 
-  const response = await fetch('/api/claude', {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -12588,7 +12590,7 @@ Rules:
 - Skip drinks with zero calories (water, plain coffee, plain tea).
 - If absolutely nothing parseable, return [].`;
 
-  const response = await fetch('/api/claude', {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

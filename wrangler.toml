@@ -1,0 +1,15 @@
+name = "sorrel-proxy"
+main = "server/proxy.js"
+compatibility_date = "2024-01-01"
+
+# Set the API key via:
+#   wrangler secret put ANTHROPIC_API_KEY
+#
+# For local dev, create a .dev.vars file (git-ignored):
+#   ANTHROPIC_API_KEY=sk-ant-...
+
+[env.production]
+name = "sorrel-proxy"
+
+[env.development]
+name = "sorrel-proxy-dev"
