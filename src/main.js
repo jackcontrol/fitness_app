@@ -22,6 +22,8 @@ import {
   updateStats,
 } from './ui/helpers/index.js';
 
+import * as modals from './ui/modals/index.js';
+
 import './ui/topbanner.js';
 
 window.Chart = Chart;
@@ -71,6 +73,7 @@ window.getDayData = (category) => {
 function bootstrap() {
   const profile = getProfile();
   const state = loadState();
+  modals.mountAll();
   const mountIds = ['app', 'root', 'sorrel-root', 'main-content'];
   const mount = mountIds.map(id => document.getElementById(id)).find(Boolean);
   if (mount) {
