@@ -51,6 +51,7 @@ import { toast } from './ui/helpers/toast.js';
 import { esc } from './utils/html.js';
 import { $, qa, byId } from './utils/dom.js';
 import { money } from './utils/format.js';
+import { TAXONOMY } from './data/taxonomy.js';
 
 import './ui/topbanner.js';
 
@@ -108,6 +109,20 @@ window.sorrelSunlightMapLifted = sunlightMap;
 // definitions; these aliases let callers route through the lifted
 // module if they reach for window.sorrel*Lifted explicitly.
 window.sorrelShowPaywallModalLifted = modals.paywall.showPaywallModal;
+// V1622 reconciled — openWeeklyPlanModal is now the live version.
+window.openWeeklyPlanModal = modals.weeklyPlan.openWeeklyPlanModal;
+window.closeWeeklyPlanModal = modals.weeklyPlan.closeWeeklyPlanModal;
+window.sorrelV1622EnsureWeekPlan = modals.weeklyPlan.ensureWeekPlan;
+window.sorrelV1622CurrentPlanDayIndex = modals.weeklyPlan.currentDayIndex;
+window.sorrelV1622OpenRecipe = modals.weeklyPlan.openRecipeModal;
+window.sorrelV1622OpenSwap = modals.weeklyPlan.openSwapModal;
+window.sorrelV1622ChooseSwap = modals.weeklyPlan.chooseSwap;
+window.sorrelV1622ToggleLock = modals.weeklyPlan.toggleLock;
+window.sorrelV1622ClearLocks = modals.weeklyPlan.clearLocks;
+window.sorrelV1622RepeatMeal = modals.weeklyPlan.repeatMeal;
+window.sorrelV1622UndoRepeat = modals.weeklyPlan.undoRepeat;
+window.sorrelV1622ValidateWeek = modals.weeklyPlan.validateWeek;
+window.sorrelV1622OpenWeek = modals.weeklyPlan.openWeek;
 window.sorrelOpenWeeklyPlanModalLifted = modals.weeklyPlan.openWeeklyPlanModal;
 window.sorrelCloseWeeklyPlanModalLifted = modals.weeklyPlan.closeWeeklyPlanModal;
 window.sorrelShowSwapModalLifted = modals.swap.showSwapModal;
@@ -162,10 +177,20 @@ window.sorrelDollarLifted = $;
 window.sorrelQaLifted = qa;
 window.sorrelByIdLifted = byId;
 
+// V1628 survivors — diet + budget public surface.
+window.sorrelGetBudget = getBudget;
+window.sorrelSetBudget = setBudget;
+window.sorrelCanonicalDietType = canonicalDietType;
+window.sorrelCanonicalAllergens = canonicalAllergens;
+// V1629 survivor — vegan classifier.
+window.sorrelClassifyForVegan = classifyForVegan;
+window.sorrelTaxonomy = TAXONOMY;
+
 function bootstrap() {
   const profile = getProfile();
   const state = loadState();
   modals.mountAll();
+  modals.weeklyPlan.mount();
   // Capture-phase delegate for custom routine card buttons.
   // Safe to install before IIFE deletion: V163 IIFE also installs one,
   // both handlers fire but the V163 handler short-circuits via
