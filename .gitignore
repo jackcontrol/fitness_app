@@ -17,3 +17,5 @@ dist/
 *.swp
 Sorrel_Investor_Overview (1).pdf
 Sorrel_User_Guide.pdf
+NEXT_SESSION.md
+.gitignore

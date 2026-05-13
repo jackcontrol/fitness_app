@@ -16,6 +16,9 @@ import { lunchRecipes } from '../data/lunches.js';
 import { dinnerRecipes as recipes } from '../data/dinners.js';
 import { snackOptions as eveningOptions } from '../data/snacks.js';
 import { recipeIngredients } from '../data/ingredients.js';
+import { $ as domGet, qa as domQa } from '../utils/dom.js';
+import { esc } from '../utils/html.js';
+import { nextMeal, nextRoutineAction, nextLogAction, usefulLogsLeft } from '../features/coaching.js';
 
 function S() {
   return window.Sorrel.loadState();
@@ -940,3 +943,100 @@ window.populateLunchGrid = populateLunchGrid;
 window.populateDinnerGrid = populateDinnerGrid;
 window.populateFavoriteSnacksGrid = populateFavoriteSnacksGrid;
 window.applyOptimizationSuggestion = applyOptimizationSuggestion;
+
+// renderPlanWeightChip — lifted from index.html L17884-17937.
+// Prominent green CTA when no weight logged today; muted confirmation
+// with edit affordance when weighed in. Reads state.weightLog +
+// getLoggingStreak (still in monolith). Idle until slice 8.2 wires
+// it into the plan render path.
+export function renderPlanWeightChip() {
+  const chip = document.getElementById('plan-weight-chip');
+  if (!chip) return;
+
+  const state = window.state || S();
+  const log = state && state.weightLog ? state.weightLog : [];
+  const today = todayISO();
+  const todayEntry = log.find((e) => e.date === today);
+
+  const streak = typeof window.getLoggingStreak === 'function' ? window.getLoggingStreak() : 0;
+  const streakBadge = streak >= 3 ? `
+    <div style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,0.22);border-radius:10px;font-size:11px;font-weight:700;margin-left:8px;flex-shrink:0;">
+      <span>🔥</span><span style="font-variant-numeric:tabular-nums;">${streak}</span>
+    </div>
+  ` : '';
+  const streakBadgeMuted = streak >= 3 ? `
+    <div style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(245,158,11,0.15);color:#92400e;border-radius:10px;font-size:11px;font-weight:700;flex-shrink:0;">
+      <span>🔥</span><span style="font-variant-numeric:tabular-nums;">${streak}</span>
+    </div>
+  ` : '';
+
+  if (todayEntry) {
+    chip.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;">
+        <div style="font-size:20px;line-height:1;flex-shrink:0;color:var(--accent-primary);">✓</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;color:var(--text-primary);font-weight:600;font-variant-numeric:tabular-nums;">${todayEntry.weight} lb today</div>
+          <div style="font-size:12px;color:var(--text-tertiary);margin-top:1px;">Tap to edit</div>
+        </div>
+        ${streakBadgeMuted}
+        <div style="font-size:16px;color:var(--text-tertiary);flex-shrink:0;">›</div>
+      </div>
+    `;
+  } else {
+    chip.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--accent-gradient);color:white;border-radius:12px;box-shadow:0 2px 8px rgba(10,125,90,0.18);">
+        <div style="font-size:22px;line-height:1;flex-shrink:0;">⚖️</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;">
+            <span>Log today's weight</span>
+            ${streakBadge}
+          </div>
+          <div style="font-size:12px;opacity:0.95;margin-top:1px;line-height:1.4;">Daily weigh-ins drive your adaptive macros</div>
+        </div>
+        <div style="font-size:18px;opacity:0.7;flex-shrink:0;">›</div>
+      </div>
+    `;
+  }
+}
+
+window.sorrelRenderPlanWeightChipLifted = renderPlanWeightChip;
+
+// renderPlanNextSteps — lifted from V1617 IIFE (L36518-36547).
+// DO / EAT / LOG card on Plan tab. Coaching deps lifted to
+// src/features/coaching.js in slice 8.2a.
+
+export function renderPlanNextSteps() {
+  let anchor = domGet('v1617-next-steps-card') || domGet('v1610-next-steps-card') || domGet('v169-next-steps-card');
+  if (!anchor) {
+    const meals = domGet('today-meals-section') || document.querySelector('#plan .section-header') || domGet('plan');
+    anchor = document.createElement('div');
+    anchor.id = 'v1617-next-steps-card';
+    if (meals && meals.parentElement) meals.parentElement.insertBefore(anchor, meals);
+    else (domGet('plan') || document.body).appendChild(anchor);
+  }
+  anchor.id = 'v1617-next-steps-card';
+  const meal = nextMeal();
+  const left = usefulLogsLeft();
+  anchor.innerHTML = `
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <span>Today’s next steps</span>
+        <span style="font-size:11px;color:var(--text-tertiary);font-weight:800;letter-spacing:.08em;">DO · EAT · LOG</span>
+      </div>
+      <div style="position:absolute;right:18px;top:18px;background:var(--accent-soft);color:var(--accent-primary);border:1px solid rgba(0,137,97,.22);border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800;">${left} useful log${left === 1 ? '' : 's'} left</div>
+      <div style="display:grid;gap:8px;margin-top:8px;">
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center;padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);font-weight:800;">What do I do next?</div><strong>${esc(nextRoutineAction())}</strong>
+        </div>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center;padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);font-weight:800;">What do I eat next?</div><strong>${esc(meal.name)} · ${esc(meal.type.charAt(0).toUpperCase() + meal.type.slice(1))} · ${esc(meal.time)}</strong>
+        </div>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center;padding:10px 12px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-tertiary);font-weight:800;">What do I log next?</div><strong>${esc(nextLogAction())}</strong>
+        </div>
+      </div>
+    </div>`;
+  domQa('#v169-next-steps-card,#v1610-next-steps-card').forEach((n) => { if (n !== anchor) n.remove(); });
+}
+
+window.sorrelRenderPlanNextStepsLifted = renderPlanNextSteps;

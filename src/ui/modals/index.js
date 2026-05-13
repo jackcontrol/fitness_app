@@ -19,6 +19,11 @@ import * as food from './food.js';
 import * as barcode from './barcode.js';
 import * as imageRecognition from './imageRecognition.js';
 import * as photoComparison from './photoComparison.js';
+import * as paywall from './paywall.js';
+import * as weeklyPlan from './weeklyPlan.js';
+import * as voiceLog from './voiceLog.js';
+import * as aiPhotoLog from './aiPhotoLog.js';
+import * as profile from './profile.js';
 
 export function mountAll() {
   customFood.mount();
@@ -34,4 +39,5 @@ export function mountAll() {
 export {
   customFood, swap, recipeRating, exercise,
   food, barcode, imageRecognition, photoComparison,
+  paywall, weeklyPlan, voiceLog, aiPhotoLog, profile,
 };

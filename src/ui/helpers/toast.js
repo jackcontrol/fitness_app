@@ -12,6 +12,17 @@ export function showLogToast(message) {
   setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2000);
 }
 
+// Short alias matching patch-IIFE closure naming. Patches V162-V1631
+// all re-defined a local `toast(msg)` wrapper around showLogToast with
+// console fallback. Consolidated here.
+export function toast(message) {
+  try {
+    showLogToast(message);
+  } catch (e) {
+    console.log('[Sorrel]', message);
+  }
+}
+
 export function showUndoToast(message, undoFn) {
   const existing = document.getElementById('log-toast');
   if (existing) existing.remove();

@@ -11,6 +11,8 @@
 // logSunlight() click handler stays in monolith until slice 8.
 
 import { todayISO } from '../utils/dates.js';
+import { customItems } from '../features/customRoutine.js';
+import { esc } from '../utils/html.js';
 
 function ensureRoutineState() {
   const state = window.Sorrel.loadState();
@@ -334,3 +336,31 @@ export function render() {
 // Expose mutators for inline onclick handlers in monolith HTML.
 window.updateRoutineTime = updateRoutineTime;
 window.updateRoutineTimeFromInput = updateRoutineTimeFromInput;
+
+// renderCustomRoutineItems — lifted from V163 IIFE (L33692-33697).
+// Renders the custom routine list inside #custom-routine-list. CRUD
+// handlers live in src/features/customRoutine.js. fmtTime adapter
+// matches V163's local fmtTime (12-hour clock with AM/PM).
+
+function fmtRoutineTime(v) {
+  const m = String(v || '').match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return esc(v || '');
+  let h = Number(m[1]);
+  const min = m[2];
+  const am = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${min} ${am}`;
+}
+
+export function renderCustomRoutineItems() {
+  const list = document.getElementById('custom-routine-list');
+  if (!list) return;
+  const items = customItems();
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:12px;background:var(--bg-elevated);border-radius:8px;color:var(--text-tertiary);font-style:italic;">No custom routine items yet.</div>`;
+    return;
+  }
+  list.innerHTML = items.map((item, idx) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${item.done ? 'var(--accent-soft)' : 'var(--bg-elevated)'};border:1px solid ${item.done ? 'rgba(10,125,90,.25)' : 'var(--border-subtle)'};border-radius:8px;margin-bottom:8px;"><button type="button" data-sorrel-custom-toggle="${idx}" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--accent-primary);background:${item.done ? 'var(--accent-primary)' : 'var(--bg-card)'};color:${item.done ? 'white' : 'var(--accent-primary)'};cursor:pointer;font-weight:700;">${item.done ? '✓' : ''}</button><div style="width:76px;font-size:12px;color:var(--accent-primary);font-weight:700;font-variant-numeric:tabular-nums;">${fmtRoutineTime(item.time)}</div><div style="flex:1;min-width:0;color:var(--text-primary);font-weight:600;${item.done ? 'text-decoration:line-through;opacity:.75;' : ''}">${esc(item.text)}</div><button type="button" data-sorrel-custom-remove="${idx}" style="background:none;border:none;color:var(--text-tertiary);font-size:18px;cursor:pointer;padding:6px;">×</button></div>`).join('');
+}
+
+window.sorrelRenderCustomRoutineItemsLifted = renderCustomRoutineItems;
