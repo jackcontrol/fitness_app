@@ -13,3 +13,5 @@ export * as plan from './plan.js';
 export * as progress from './progress.js';
 export * as training from './training.js';
 export * as customFoods from './customFoods.js';
+export * as trial from './trial.js';
+export * as routine from './routine.js';

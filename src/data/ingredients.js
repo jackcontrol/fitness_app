@@ -137,7 +137,7 @@ export const ingredientDatabase = {
 };
 
 // RECIPE TO INGREDIENT MAPPING
-const recipeIngredients = {
+export const recipeIngredients = {
   marinara: {
     name: 'Chicken Spaghetti Marinara',
     tier: 'budget',

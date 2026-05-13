@@ -12,7 +12,15 @@ import {
   canonicalDietType, canonicalAllergens, classifyForVegan,
   getBudget, setBudget,
   fasting, diary, plan, progress, training, customFoods,
+  trial, routine,
 } from './features/index.js';
+
+import {
+  showLogToast, showUndoToast,
+  updateBaselineBanner, updateTrialBanner,
+  updateTrainRecoveryBanner, updateIntelligenceBanners,
+  updateStats,
+} from './ui/helpers/index.js';
 
 import './ui/topbanner.js';
 
@@ -25,6 +33,39 @@ window.Sorrel = {
   canonicalDietType, canonicalAllergens, classifyForVegan,
   getBudget, setBudget,
   fasting, diary, plan, progress, training, customFoods,
+  trial, routine,
+  helpers: {
+    showLogToast, showUndoToast,
+    updateBaselineBanner, updateTrialBanner,
+    updateTrainRecoveryBanner, updateIntelligenceBanners,
+    updateStats,
+  },
+};
+
+// Expose lifted helpers under their original names so slice 5 modules and
+// other window.* callers find them. Monolith's bare-identifier calls
+// (e.g. `showLogToast(...)`) still resolve to monolith's own function
+// declarations via script scope, so the two versions coexist until slice 8.
+window.showLogToast = showLogToast;
+window.showUndoToast = showUndoToast;
+window.updateBaselineBanner = updateBaselineBanner;
+window.updateTrialBanner = updateTrialBanner;
+window.updateTrainRecoveryBanner = updateTrainRecoveryBanner;
+window.updateIntelligenceBanners = updateIntelligenceBanners;
+window.updateStats = updateStats;
+window.checkTrialExpiry = trial.checkTrialExpiry;
+window.ensureTrialState = trial.ensureTrialState;
+window.getTrialDaysLeft = trial.getTrialDaysLeft;
+window.isAdaptiveUnlocked = trial.isAdaptiveUnlocked;
+window.getTodaysIntensityRecommendation = training.getTodaysIntensityRecommendation;
+window.getHydrationSchedule = routine.getHydrationSchedule;
+// getDayData mutates state[category][dayKey] in place. Read monolith's
+// live state (published on window by patch IIFEs at L33171+) to keep
+// mutations visible to monolith; fall back to a fresh loadState() snapshot
+// only when window.state is not yet available.
+window.getDayData = (category) => {
+  const state = window.state || loadState();
+  return plan.getDayData(state, category);
 };
 
 function bootstrap() {

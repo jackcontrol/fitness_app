@@ -113,3 +113,43 @@ export function dailyStrengthVolume() {
     return total + e.sets.reduce((s, set) => s + (Number(set.reps) || 0) * (Number(set.weight) || 0), 0);
   }, 0);
 }
+
+// Recovery-driven training intensity recommendation.
+// Lifted from index.html L19334. Pure: takes a recovery level string,
+// returns the day's guidance + macro modifiers. Caller resolves recovery
+// level via window.getRecoveryLevel (still in monolith).
+const INTENSITY_RECS = {
+  optimal: {
+    level: 'optimal', emoji: '🟢', label: 'Push hard today',
+    training: 'Heavy lifting, HIIT, or hard cardio. Your body is primed for performance.',
+    nutrition: 'Hit your full carb target. Consider a small surplus pre-workout.',
+    proteinMod: 0, carbMod: 0, calMod: 0, color: '#0a7d5a',
+  },
+  good: {
+    level: 'good', emoji: '🟡', label: 'Normal training day',
+    training: 'Stick to your planned workout. Listen to your body during warm-ups.',
+    nutrition: 'Hit your standard macros — no adjustment needed.',
+    proteinMod: 0, carbMod: 0, calMod: 0, color: '#d97706',
+  },
+  low: {
+    level: 'low', emoji: '🟠', label: 'Ease up',
+    training: 'Active recovery, lighter weights, or shorter session. No PRs today.',
+    nutrition: 'Bump protein 10% to support repair. Drop fat 10% to keep calories steady.',
+    proteinMod: 0.10, carbMod: 0, calMod: 0, color: '#f59e0b',
+  },
+  depleted: {
+    level: 'depleted', emoji: '🔴', label: 'Rest day',
+    training: 'Skip intense training. Walk, stretch, or take a sauna. Recovery is the work today.',
+    nutrition: 'Lower carbs by 15% (less glucose needed). Keep protein high. Calories down ~150.',
+    proteinMod: 0.05, carbMod: -0.15, calMod: -150, color: '#dc2626',
+  },
+};
+
+export function getIntensityRecommendation(level) {
+  return INTENSITY_RECS[level] || null;
+}
+
+export function getTodaysIntensityRecommendation() {
+  const level = (typeof window.getRecoveryLevel === 'function') ? window.getRecoveryLevel() : null;
+  return getIntensityRecommendation(level);
+}

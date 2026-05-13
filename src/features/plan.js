@@ -71,6 +71,22 @@ export function setMealsPerDay(state, n) {
   return state.mealsPerDay;
 }
 
+// Day-bucket accessor used by hydration / shopping / evening / sunlight
+// for per-day data stored under state[category][day${currentDay}]. Lazy-
+// creates the category and bucket on first access.
+//
+// Lifted from index.html L10211 (getDayKey) + L10215 (getDayData).
+export function getDayKey(state) {
+  return `day${state.currentDay}`;
+}
+
+export function getDayData(state, category) {
+  const dayKey = getDayKey(state);
+  if (!state[category]) state[category] = {};
+  if (!state[category][dayKey]) state[category][dayKey] = {};
+  return state[category][dayKey];
+}
+
 // Derive the meal rotation for a given day index (1-7), reading favorites
 // and falling back to the default. Pure — no state mutation.
 export function getMealRotation(state, dayIdx) {

@@ -15,11 +15,11 @@ context + decisions). This file is the short-form continuation guide.
 - **Session 3** — Slice 4 substantially done (fasting, diary, plan, progress,
   training, customFoods + 5 more data tables + utils). Slice 6 (CSS extract)
   done. `index.html` still 1.88 MB — shell-swap is slice 8.
-- **Session 4** — Slice 5 started. Plan revised to match actual tab inventory
+- **Session 4** — Slice 5 complete. Plan revised to match actual tab inventory
   (8 real tabs: plan/diary/exercise/progress/shopping/analytics/premium/routine —
-  no home/settings tabs). Lifted 6 tabs: topbanner, premium, routine, analytics,
-  progress, exercise. Build green throughout. `src/ui/` modules sit idle —
-  monolith still owns runtime until slice 8.
+  no home/settings tabs). Lifted all 8 tabs + top banner + render.js
+  orchestrator. Build green throughout. `src/ui/` modules sit idle — monolith
+  still owns runtime until slice 8 calls `installSwitchTab()`.
 
 ## What's done in `src/`
 
@@ -55,14 +55,17 @@ src/
     profile.js                 ✓ user-profile + budget triple migration
   styles/
     main.css                   ✓ 1,327 lines extracted from <style> blocks
-  ui/                          ✓ Slice 5 in progress
+  ui/                          ✓ Slice 5 COMPLETE
     topbanner.js               ✓ priority-cascade banner (recovery/trial/weekly/baseline)
     premium.js                 ✓ fasting UI + photo grid + custom foods cards
     routine.js                 ✓ circadian routine (wake/bedtime + sunlight)
     analytics.js               ✓ weight/calorie/macro/exercise charts (Chart.js)
     progress.js                ✓ weight summary + pattern badge + photo grid
     exercise.js                ✓ cardio/strength log + rest timer + byset session
-    render.js                  ✓ skeleton (dynamic-import tab map; not yet wired)
+    diary.js                   ✓ food log + macros + multi-add + swipe-delete
+    plan.js                    ✓ main planner + grids + budget optimizer
+    shopping.js                ✓ list render + pantry toggles + store recos
+    render.js                  ✓ tab orchestrator (installSwitchTab for slice 8)
   utils/
     dates.js                   ✓ todayISO / toLocalISO / daysBetween
     html.js                    ✓ escapeHtml
@@ -130,7 +133,7 @@ since only the food-search-by-barcode flow needs it.
 The older SLICE5_PLAN.md (in repo) assumed 7 tabs including `home`/`settings`;
 that doesn't match reality. The active plan has the corrected 8-tab inventory.
 
-**Done so far (Session 4):**
+**All done (Session 4):**
 
 | # | Tab | File | LOC | Status |
 |---|---|---|---|---|
@@ -140,15 +143,14 @@ that doesn't match reality. The active plan has the corrected 8-tab inventory.
 | 5.4 | Analytics | `src/ui/analytics.js` | ~470 | ✅ |
 | 5.5 | Progress | `src/ui/progress.js` | ~110 | ✅ |
 | 5.6 | Exercise | `src/ui/exercise.js` | ~580 | ✅ |
+| 5.7 | Diary | `src/ui/diary.js` | ~570 | ✅ |
+| 5.8 | Plan | `src/ui/plan.js` | ~830 | ✅ |
+| 5.9 | Shopping | `src/ui/shopping.js` | ~420 | ✅ |
+| 5.10 | render.js orchestrator | `src/ui/render.js` | ~90 | ✅ |
 
-**Remaining:**
+**Slice 5 grand total**: ~3,780 LOC lifted across 10 modules. Build green.
 
-| # | Tab | Source range (monolith) | Est. LOC | Notes |
-|---|---|---|---|---|
-| 5.7 | Diary | L10865-? + L11102 etc. | ~3,000 | Biggest single tab. Lots of modal handlers. |
-| 5.8 | Plan | L10233-10791 + L15660-15919 + L16101+ | ~5,500 | Optimizer + grids + main updater. Split this across two sessions. |
-| 5.9 | Shopping | L28048+ | ~2,000 | Deferred from slice 4f. |
-| 5.10 | render.js orchestrator | Replaces `switchTab` L28442 | ~50 | Last step. Wire all tabs into single entry. |
+**Next: Slice 7 (modals) + Slice 8 (shell-swap).**
 
 **Bridge pattern in use:**
 
