@@ -2,7 +2,6 @@
 
 Picks up where last session ended. Refactor plan canonical at
 `C:\Users\abark\.claude\plans\how-would-you-improve-mighty-rabbit.md`.
-Slice 7 plan: `C:\Users\abark\.claude\plans\next-session-md-replicated-hoare.md`.
 
 ---
 
@@ -44,111 +43,46 @@ Slice 7 plan: `C:\Users\abark\.claude\plans\next-session-md-replicated-hoare.md`
   installCustomRoutineHandlers — V163 survivor). UI extensions:
   `src/ui/routine.js#renderCustomRoutineItems` (V163 body),
   `src/ui/plan.js#renderPlanNextSteps` (V1617 body). main.js wires
-  ~40 `window.*` shims (live overrides for renderCustomRoutineItems,
-  hydration actions, renderPlanNextSteps, logSunlight, etc.). Build
-  green: 66 modules, 271 KB main bundle (data files now pulled in via
-  plan imports). Browser smoke not run this session.
-
-  **Deferred from 8.2a to 8.2b** (substantial work, coupled to monolith
-  bare-identifier resolution + shell swap):
-  - All 19 patch-IIFE body deletions (V162-V1631 at L33386-39865).
-  - 24 smoke functions + `function smokeTest()` (all inside IIFE bodies).
-  - V1622 weekly plan modal reconcile (~400 LOC, replaces session-6
-    lifted L32031 baseline).
-  - V1625 observer + initializeSorrelUI hooks for `src/ui/render.js`.
-  - aiPhotoLog downstream flow (handleAIPhotoFile, callAIPhotoAnalysis,
-    showAIPhotoReview, confirmAIPhotoLog, escapeAIText,
-    updateAIPhotoTotals).
-  - profileModal inline `<script>` extraction (nextPage, prevPage,
-    saveProfile placeholders).
-
-  **NOT FOUND in monolith** (handoff/plan inventory inaccurate):
-  - `renderBaselineCard`/`dismissBaselineCard` — plan listed in V166;
-    grep returns zero matches. Drop from scope.
-
+  ~40 `window.*` shims. Build green: 66 modules, 271 KB main bundle.
+  Browser smoke not run this session.
+- **Session 8** — 8.2b prep. V1622 weekly plan modal reconciled: rewrote
+  `src/ui/modals/weeklyPlan.js` (239 → 397 LOC) from V1622 IIFE body.
+  V1628 budget shims + V1629 vegan classifier shims added to main.js.
+  Build green: 66 modules, 277 KB / 68 KB gzip.
 - **Session 9** — Slice 8.2b shell swap complete. Created `src/ui/shell.js`
   (1,298 LOC) with nav + all 8 tab section HTML skeletons extracted verbatim
-  from monolith L2640–3930. Updated `src/main.js`: added imports for
-  calculateDailyTotals/closeById/mountShell/installSwitchTab/switchTab; added
-  3 cheap shims (window.calculateDailyTotals, closeAddCardio, closeAddStrength);
-  mountShell() called at module top (before DOMContentLoaded) so DOM exists
-  when monolith boot() fires; bootstrap() now hoists window.profile/state,
-  calls installSwitchTab() + switchTab(initialTab); removed debug banner.
-  index.html: removed L2640–3930 (nav + sections), replaced with
-  `<div id="app"></div>` — shrunk from 40,265 to 38,975 lines. Build green:
-  77 modules, 390 KB / 92 KB gzip. Browser smoke: **ALL PASSED**.
+  from monolith L2640–3930. Updated `src/main.js`: mountShell() + installSwitchTab()
+  + switchTab(initialTab) wired; 3 cheap shims added. index.html: removed
+  L2640–3930 (nav + sections), replaced with `<div id="app"></div>` — shrunk
+  from 40,265 to 38,975 lines. Build green: 77 modules, 390 KB / 92 KB gzip.
+  Browser smoke: **ALL PASSED**.
 
-  **Key architectural facts discovered during planning:**
-  - index.html structure: L1–2639 (head + modal HTML), L2640–3930 (nav +
-    sections, now removed), L3931–~38,975 (main app JS body + IIFE patches).
-  - Main app JS body (~L3931–27,200): original app functions —
-    `changeDiaryDate` (L10851), `openFoodSearch` (L11359),
-    `ensureAdaptiveState` (L17094), `getLoggingStreak` (L17125),
-    `getEffectiveMacrosForToday` (L19432). Cannot delete until lifted.
-  - IIFE patches (~L27,200–38,975): `renderHealthRecovery` (L28690),
-    `generateShoppingList` (L30230), `analyzeStoreRecommendations` (L30518)
-    still needed — lift these first before IIFE deletion.
+  **Key architectural facts:**
+  - index.html structure post-session-9: L1–2639 (head + modal HTML),
+    L2640 (`<div id="app"></div>`), L2641–31,868 (main app JS body),
+    L31,869–38,975 (IIFE patches — now deleted in session 10).
+  - Main app JS body still has all original functions: `changeDiaryDate`
+    (L10851), `openFoodSearch` (L11359), `ensureAdaptiveState` (L17094),
+    `getLoggingStreak` (L17125), `getEffectiveMacrosForToday` (L19432).
+    Cannot delete until lifted.
   - renderFoodDiary() + other tab renders do PARTIAL updates (getElementById),
-    not innerHTML rebuild — shell.js MUST provide full skeleton, not empty divs.
+    not innerHTML rebuild — shell.js MUST provide full skeleton.
 
-  **Deferred to 8.3** (requires function lifting before deletion):
-  - Lift `renderHealthRecovery` → `src/ui/exercise.js` or helpers
-  - Lift `generateShoppingList` + `analyzeStoreRecommendations` →
-    `src/features/shopping.js`
-  - Delete all 19 IIFE patch blocks once those 3 functions lifted
-  - True thin shell (30-line index.html) deferred until main app JS body
-    functions fully lifted
-
-- **Session 8** — 8.2b prep. V1622 weekly plan modal reconciled: rewrote
-  `src/ui/modals/weeklyPlan.js` (239 → 397 LOC) from V1622 IIFE body
-  (L37301–37711). Uses sorrel-v1622-week-modal DOM ID, normalizeDay +
-  safeMeal repair bridge, recipe + swap sub-modals, lock/repeat/undo/
-  validate actions, week-button repair. mount() wired from main.js
-  bootstrap(). All sorrelV1622* window.* shims added to main.js. V1628
-  budget shims (sorrelGetBudget, sorrelSetBudget, sorrelCanonicalDietType,
-  sorrelCanonicalAllergens) and V1629 (sorrelClassifyForVegan,
-  sorrelTaxonomy) added. Build green: 66 modules, 277 KB / 68 KB gzip.
-
-  **Key discovery: tab module render() completeness.**
-  `src/ui/render.js#switchTab` calls `mod.render()` on each tab module.
-  Current status:
-  - `src/ui/routine.js` — has `render()` ✓ (calls renderHealthSunlight,
-    renderHealthRoutineFull, renderRoutineTab)
-  - `src/ui/diary.js` — has `renderFoodDiary()` but NO `render()` export
-  - `src/ui/plan.js` — no `render()` export (has renderPlanWeightChip,
-    renderPlanNextSteps only)
-  - `src/ui/shopping.js` — has `renderDynamicShopping()` but NO `render()`
-
-  Shell swap CANNOT proceed until plan/diary/shopping each export a
-  proper standalone `render()`. Currently all three depend on monolith DOM
-  structure (specific child element IDs like `#plan-content`, `#routine-
-  content`, etc.) — render() functions must create or tolerate missing
-  containers.
-
-  **Deferred from session 8 to 8.2b** (requires shell swap):
-  - All 19 patch-IIFE body deletions (V162-V1631 at L33386-39865).
-  - 24 smoke functions (inside IIFE bodies).
-  - V1625 observer — state mirror + pantry bridge. Too monolith-coupled
-    to lift cleanly pre-shell-swap. Drop these wrappers at IIFE deletion.
-  - aiPhotoLog downstream flow.
-  - profileModal inline `<script>` extraction.
-
-  **Shell swap prerequisites (8.2b actual scope):**
-  1. Add `export function render()` to `src/ui/plan.js` that calls
-     `updateMainPagePlanner()` via window.* (monolith render, acceptable
-     during transition) OR creates a self-contained plan section.
-  2. Add `export function render()` to `src/ui/diary.js` wrapping
-     `renderFoodDiary()`.
-  3. Add `export function render()` to `src/ui/shopping.js` wrapping
-     `renderDynamicShopping()`.
-  4. Create a `src/ui/shell.js` that injects the nav + empty tab sections
-     into `document.body` when called from main.js bootstrap.
-  5. Replace monolith index.html with ~30-line Vite shell (keep `<title>`,
-     viewport meta, manifest link, `<div id="app">`, main.js script).
-  6. Wire `installSwitchTab()` from main.js, call `switchTab(initialTab())`
-     on bootstrap.
-  7. Delete all 19 IIFE bodies (reverse order: V1631 → V162).
-  8. Verify all tabs render, all modals open, localStorage persists.
+- **Session 10** — Slice 8.3 lifts + IIFE deletion. Lifted recovery helpers
+  (`ensureRecoveryState`, `computeRecoveryBaseline`, `getRecoveryLevel`) into
+  `src/features/training.js`; updated `getTodaysIntensityRecommendation` to use
+  local `getRecoveryLevel` instead of `window.getRecoveryLevel`. Lifted
+  `renderHealthRecovery` into `src/ui/exercise.js`. Lifted
+  `parseIngredientString`, `aggregateIngredients`, `calculateWeeklyIngredients`,
+  `groupItemsBySelectedStores`, `generateShoppingList`,
+  `analyzeStoreRecommendations` into `src/features/shopping.js`;
+  `buildItemsFromWeekPlan`/`shoppingItems` updated to use local fns. Added 5
+  new `window.*` shims to `main.js` (`generateShoppingList`,
+  `parseIngredientString`, `analyzeStoreRecommendations`, `getRecoveryLevel`,
+  `renderHealthRecovery`). **Deleted all 19 IIFE patch blocks** (L31,869–L38,973,
+  7,105 lines) from index.html. Build green: 77 modules, 1,315 KB / 303 KB gzip
+  (was 1,769 KB / 411 KB, −454 KB). **Browser smoke NOT run this session —
+  must do before next commit.**
 
 ---
 
@@ -167,207 +101,170 @@ src/
     taxonomy.js                         ✓ INGREDIENT_TAXONOMY
   features/
     budget.js  customFoods.js           ✓
-    diary.js   diet.js                  ✓ (+ calculateDailyTotals, updateMacroSummary in src/ui/diary.js)
-    fasting.js plan.js                  ✓ plan extended: getDayKey, getDayData (session 5)
-    coaching.js                         ✓ NEW (session 7) — nextMeal, nextRoutineAction, nextLogAction, usefulLogsLeft
-    customRoutine.js                    ✓ NEW (session 7) — CRUD + installCustomRoutineHandlers
-    hydration.js                        ✓ NEW (session 7) — hydrateCount + 5 actions
-    recipes.js                          ✓ NEW (session 7) — mealForSlot, recipeDbs, ingredientFor
-    shopping.js                         ✓ NEW (session 7) — purchaseCost et al. (data side, distinct from src/ui/shopping.js)
+    diary.js   diet.js                  ✓
+    fasting.js plan.js                  ✓ plan extended: getDayKey, getDayData
+    coaching.js                         ✓ nextMeal, nextRoutineAction, nextLogAction, usefulLogsLeft
+    customRoutine.js                    ✓ CRUD + installCustomRoutineHandlers
+    hydration.js                        ✓ hydrateCount + 5 actions
+    recipes.js                          ✓ mealForSlot, recipeDbs, ingredientFor
+    shopping.js                         ✓ purchaseCost/weeklyCost/pantryHas/normalizeItems/
+                                            buildItemsFromWeekPlan/shoppingItems (V165) +
+                                            session 10: parseIngredientString, aggregateIngredients,
+                                            calculateWeeklyIngredients, groupItemsBySelectedStores,
+                                            generateShoppingList, analyzeStoreRecommendations
     progress.js                         ✓
-    training.js                         ✓ extended: getIntensityRecommendation, getTodaysIntensityRecommendation (session 5)
-    trial.js                            ✓ NEW (session 5): TRIAL_DAYS, ensureTrialState, getTrialDaysLeft, isAdaptiveUnlocked, saveTrialState, checkTrialExpiry
-    routine.js                          ✓ NEW (session 5): getHydrationSchedule
+    training.js                         ✓ getIntensityRecommendation, getTodaysIntensityRecommendation +
+                                            session 10: ensureRecoveryState, computeRecoveryBaseline,
+                                            getRecoveryLevel
+    trial.js                            ✓ TRIAL_DAYS, ensureTrialState, getTrialDaysLeft,
+                                            isAdaptiveUnlocked, saveTrialState, checkTrialExpiry
+    routine.js                          ✓ getHydrationSchedule
+    sunlight.js                         ✓ sunlightMap, logSunlight, renderHealthSunlightStable
     index.js                            ✓ barrel
   state/
     appState.js  index.js  profile.js   ✓
+    accessors.js                        ✓ appState/appProfile/saveAll/saveQuiet/saveProfileQuiet
   styles/main.css                       ✓ slice 6
   ui/
     topbanner.js  premium.js routine.js ✓ slice 5
-    analytics.js  progress.js exercise.js ✓ slice 5
+    analytics.js  progress.js           ✓ slice 5
+    exercise.js                         ✓ slice 5 + session 10: renderHealthRecovery
     diary.js  plan.js  shopping.js      ✓ slice 5
-    render.js                           ✓ slice 5 orchestrator (installSwitchTab for slice 8)
-    helpers/                            ✓ NEW (session 5)
-      toast.js                          ✓ showLogToast, showUndoToast
-      banners.js                        ✓ updateBaselineBanner, updateTrialBanner, updateTrainRecoveryBanner, updateIntelligenceBanners
+    render.js                           ✓ slice 5 orchestrator + installSwitchTab
+    shell.js                            ✓ session 9: nav + all 8 tab skeletons (1,298 LOC)
+    helpers/
+      toast.js                          ✓ showLogToast, showUndoToast, toast() alias
+      banners.js                        ✓ updateBaselineBanner, updateTrialBanner,
+                                            updateTrainRecoveryBanner, updateIntelligenceBanners
       stats.js                          ✓ updateStats
       index.js                          ✓ barrel
-    modals/                             ✓ NEW (session 5)
+    modals/
       helpers.js                        ✓ ensureMounted, openById, closeById
       customFood.js                     ✓ template + open + close
-      swap.js                           ✓ session 5: recipe/breakfast/lunch/snack
-                                        ✓ session 6: + showSwapModal (day-level)
+      swap.js                           ✓ recipe/breakfast/lunch/snack + showSwapModal (day-level)
       recipeRating.js                   ✓ template + close
       exercise.js                       ✓ addCardio + addStrength templates
       food.js                           ✓ foodSearch + foodDetail templates
       barcode.js                        ✓ template + close
       imageRecognition.js               ✓ template + close
       photoComparison.js                ✓ template + close
-      paywall.js                        ✓ NEW (session 6) — showPaywallModal factory
-      weeklyPlan.js                     ✓ NEW (session 6) — open/closeWeeklyPlanModal
-      voiceLog.js                       ✓ NEW (session 6) — renderVoiceLogModal
-      aiPhotoLog.js                     ✓ NEW (session 6) — openAIPhotoLog entry only
-      profile.js                        ✓ NEW (session 6) — 1021-line template + open/close
+      paywall.js                        ✓ showPaywallModal factory
+      weeklyPlan.js                     ✓ open/closeWeeklyPlanModal (V1622 reconciled)
+      voiceLog.js                       ✓ renderVoiceLogModal
+      aiPhotoLog.js                     ✓ openAIPhotoLog entry only
+      profile.js                        ✓ 1021-line template + open/close
       index.js                          ✓ barrel + mountAll()
   utils/
-    dates.js                            ✓ + session 6: localDateKey, weekStart, plusDays
-    html.js                             ✓ + session 7: esc alias
-    dom.js                              ✓ NEW (session 6) — $, qa, byId
-    format.js                           ✓ NEW (session 7) — money
-    time.js                             ✓ NEW (session 7) — fmtTime/minutes24/timeToMinutes/toInputTime/parseDisplayTime
-  features/sunlight.js                  ✓ NEW (session 6) — sunlightMap, logSunlight, renderHealthSunlightStable
-  state/
-    accessors.js                        ✓ NEW (session 7) — appState/appProfile/saveAll/saveQuiet/saveProfileQuiet
-  ui/helpers/toast.js                   ✓ + session 7: toast() short alias
-  ui/routine.js                         ✓ + session 7: renderCustomRoutineItems (V163 body)
-  ui/plan.js                            ✓ + session 7: renderPlanNextSteps (V1617 body)
-  main.js                               ✓ session 7: imports CSS, wires window.Sorrel + ~40 window.* shims, calls modals.mountAll() + installCustomRoutineHandlers() at bootstrap
+    dates.js                            ✓ todayISO, toLocalISO, localDateKey, weekStart, plusDays
+    html.js                             ✓ esc alias
+    dom.js                              ✓ $, qa, byId
+    format.js                           ✓ money
+    time.js                             ✓ fmtTime/minutes24/timeToMinutes/toInputTime/parseDisplayTime
+  main.js                               ✓ imports CSS, wires window.Sorrel + ~45 window.* shims,
+                                            calls modals.mountAll() + installCustomRoutineHandlers()
+                                            + mountShell() + installSwitchTab() at bootstrap
 ```
 
 ---
 
-## What's still in the monolith (slice 8 targets)
+## What's still in the monolith
 
-### Tab renders (lifted to src/ui/ but dormant; monolith copies still run)
+### index.html current state (session 10)
 
+- **31,870 lines** (was 38,975 after session 9, 40,265 original)
+- L1–2639: head + modal HTML (still monolith-owned)
+- L2640: `<div id="app"></div>` (shell)
+- L2641–31,868: main app JS body (~29K LOC, all original functions)
+- L31,869–31,870: `</body></html>`
+- **All 19 IIFE patch blocks deleted.**
+
+### Main app body (L2641–31,868) — cannot delete until lifted
+
+Tab renders (lifted to `src/ui/` but dormant; monolith copies still run):
 - Diary tab (`renderFoodDiary`, `renderMealFoods`, swipe-delete, multi-add) ~3,000 LOC
 - Plan tab (`updateMainPagePlanner`, grids, optimizer, `calculateMealRotation`) ~5,500 LOC
 - Shopping tab (`renderDynamicShopping`, pantry, store, delivery) ~2,000 LOC
 
-These delete when `installSwitchTab()` fires in slice 8.
+Cross-tab helpers still in monolith body (not yet lifted):
+- `getEffectiveMacrosForToday`, `getLoggingStreak`, `ensureAdaptiveState`
+- `renderMorningStrip`, `renderTopBanner`, `getMealTimingGuide`
+- `renderHydrationSchedule`, `renderHealthSunlight`
+- `getTrendWeight`, `renderProgress`, `renderProgressTab`
+- `swapMeal`, `viewRecipe`
+- save/load profile beyond `state/profile.js`
+- trial subsystem caller sites (`showPaywallModal`, `subscribePro`)
+- `changeDiaryDate`, `openFoodSearch` and hundreds more original functions
 
-### Modals lifted in session 6 (dormant until slice 8.2)
+Note: `renderHealthRecovery`, `generateShoppingList`, `analyzeStoreRecommendations`,
+`parseIngredientString` still exist in monolith body but are now shadowed by
+`window.*` shims from `src/main.js` (module loads last, overrides win).
+
+### Modals
 
 | Modal | Module | Status |
 |---|---|---|
 | `paywallModal` | src/ui/modals/paywall.js | ✓ Lifted complete |
-| `weeklyPlanModal` | src/ui/modals/weeklyPlan.js | ✓ Lifted complete |
+| `weeklyPlanModal` | src/ui/modals/weeklyPlan.js | ✓ Lifted + V1622 reconciled |
 | `swapModal` (day-level) | src/ui/modals/swap.js | ✓ Lifted complete |
 | `voiceLogModal` | src/ui/modals/voiceLog.js | ✓ Lifted complete |
-| `aiPhotoLogModal` | src/ui/modals/aiPhotoLog.js | ✓ Entry only (downstream stays in monolith for 8.1) |
+| `aiPhotoLogModal` | src/ui/modals/aiPhotoLog.js | ✓ Entry only (downstream deferred) |
 | `profileModal` | src/ui/modals/profile.js | ✓ Template only (1021 LOC) |
 
-### Still deferred to slice 8.2
+### Still deferred
 
-- **aiPhotoLog downstream flow** — `handleAIPhotoFile`, `resizeImageForAI`,
+- **aiPhotoLog downstream** — `handleAIPhotoFile`, `resizeImageForAI`,
   `callAIPhotoAnalysis`, `showAIPhotoReview`, `confirmAIPhotoLog`,
   `escapeAIText`, `updateAIPhotoTotals`. Need to factor `aiPhotoSession`
   + `AI_PHOTO_CONFIG` into module state.
-- **profileModal inline `<script>`** — IMMEDIATE modal check IIFE +
-  nextPage/prevPage/saveProfile placeholders at template L1327-1587 won't
-  auto-execute via innerHTML injection. When monolith strips, extract to
-  `src/ui/modals/profile-controller.js` and invoke from main.js bootstrap.
-- **renderPlanNextSteps** — closure deps on `nextMeal`, `nextRoutineAction`,
-  `nextLogAction`, `usefulLogsLeft`, `esc`. Lift after full IIFE collapse.
-
-### Patch-IIFE-closure helpers
-
-Session 6 status:
-- `logSunlight` + `sunlightMap` + `renderHealthSunlightStable` ✓ lifted to
-  `src/features/sunlight.js`. Dormant — monolith IIFE-local copies at
-  L36205-36261 still drive active code path.
-- `renderPlanWeightChip` ✓ lifted into `src/ui/plan.js`.
-- `renderPlanNextSteps` ⏸ deferred to 8.2 (deep IIFE closure deps).
-- `renderCustomRoutineItems` ✗ NOT FOUND in monolith. Either renamed
-  earlier or removed. Drop from scope.
-
-### Real IIFE guard names (verified 2026-05-13)
-
-Handoff originally said "v1.6.10 → v1.6.31 wrapper chains". Actual guards
-are per-feature camelCase: `__sorrelV162Fallbacks` (L33386),
-`__sorrelV163BehaviorFix`, `__sorrelV163WaterGuard`,
-`__sorrelV164ShoppingRestore`, `__sorrelV165OriginalBehaviorRestore`,
-`__sorrelV166OriginalInteractionFix`, `__sorrelV167UXFix`,
-`__sorrelV168OriginalMobileUxRefine`, `__sorrelV1616Loaded`,
-`__sorrelV1617FunctionalSmokeConsolidation`, ... through
-`__sorrelV1625Observer` (L38176). ~14 stacked patch IIFEs total. Multiple
-`boot()` IIFE bodies at L34370, L34675, L34898, L35129; `bootV1617()` at
-L36681. Slice 8.2 must collapse all of these.
-
-### Other monolith-only code (delete or lift at slice 8)
-
-- OFF (Open Food Facts) client code + Quagga barcode scanner glue
-- AI photo / voice log flows
-- Patch IIFEs (`__sorrelV16XXLoaded`, `__v16XXWrapped` guards, `v1.6.10` → `v1.6.31` wrapper chains)
-- 24 smoke test functions (`sorrelRunV16XXSmoke`)
-- 420 `console.log` calls (stripped by Vite `esbuild.drop` on build)
-- Cross-tab helpers still in monolith: `getEffectiveMacrosForToday`, `getLoggingStreak`,
-  `getRecoveryLevel`, `ensureAdaptiveState`, `renderMorningStrip`, `renderTopBanner`,
-  `getMealTimingGuide`, `renderHydrationSchedule`, `renderHealthSunlight`,
-  `renderHealthRecovery`, `getTrendWeight`, `renderProgress`, `renderProgressTab`,
-  `swapMeal`, `viewRecipe`, save/load profile beyond what `state/profile.js` covers,
-  trial subsystem caller sites (`showPaywallModal`, `subscribePro`)
+- **profileModal inline `<script>`** — nextPage/prevPage/saveProfile
+  placeholders. Extract to `src/ui/modals/profile-controller.js`.
 
 ---
 
-## Bridge pattern (in use, slice 5-7)
+## Slice 8.3 remaining work
 
-- All state reads via `window.Sorrel.{loadState, getProfile, diary, training, customFoods, progress, fasting, plan, trial, routine}` etc.
-- Lifted modules expose mutators on `window.*` (e.g. `window.addCardioExercise`, `window.deleteCustomFood`) so monolith's inline `onclick="..."` handlers keep working.
-- Session 5 added `window.*` shims for: showLogToast, showUndoToast, updateBaselineBanner, updateTrialBanner, updateTrainRecoveryBanner, updateIntelligenceBanners, updateStats, checkTrialExpiry, ensureTrialState, getTrialDaysLeft, isAdaptiveUnlocked, getTodaysIntensityRecommendation, getHydrationSchedule, getDayData. **These override monolith via aliasing** — when monolith bare-identifier calls (e.g. `showLogToast(...)`) hit, they go to lifted code via `window` lookup. Behavior identical (lifted is verbatim copy).
-- `window.state` + `window.profile` published by monolith patch IIFEs at L33171+. Lifted helpers read these directly; mutations propagate.
-- `window.foodDiary` NOT published by monolith. Lifted code that needs diary uses `window.Sorrel.diary.getDiary()` (separate identity from monolith's `const foodDiary`). Behavior overlap OK while monolith authoritative; merges at slice 8.
+### 1. Browser smoke (BLOCKING — do first)
 
-### Modal bridge (session 5)
+IIFEs deleted this session — unknown if any critical event handlers were lost.
+Must verify before committing:
+- Open each tab → tab content renders
+- Exercise tab: recovery section renders
+- Shopping tab: generateShoppingList produces items
+- Open each modal from trigger → renders + closes
+- localStorage writes persist
 
-Each modal module exports `mount()` + close fns. `ensureMounted(id, html)` checks for existing element by ID:
-- While monolith inline HTML exists (7B): no-op, modal coexists.
-- Post-slice-8 strip: injects template.
+### 2. PWA
 
-`mountAll()` called from `main.js` bootstrap on DOMContentLoaded.
+- `public/manifest.webmanifest`
+- `src/pwa/sw.js`
+- Service worker registration in `src/main.js`
 
----
+### 3. GH Pages flip
 
-## Slice 8 plan (next 1-2 sessions)
-
-### 8.1 Lift remaining modals + patch IIFE helpers (~6-8 hr)
-
-1. **Dynamic modals as factories** — move `showPaywallModal`, `openWeeklyPlanModal`, `showSwapModal`, `renderVoiceLogModal`, `openAIPhotoLog` to `src/ui/modals/*.js`. Each builds DOM via template literal + appends to body. Keep `window.*` shims.
-2. **profileModal** — lift ~1028 LOC template + open/close. Onboarding logic stays in monolith for now.
-3. **Patch IIFE collapse** — extract closure-local helpers (`$`, `qa`, `localDateKey`, `weekStart`, `appState`, `appProfile`, etc.) into `src/utils/dom.js` + `src/utils/dates.js` extension. Lift `logSunlight`, `renderPlanWeightChip`, `renderPlanNextSteps`, `renderCustomRoutineItems` as ordinary modules.
-
-### 8.2 Shell swap (~2-3 hr)
-
-Replace `index.html` with ~30-line shell:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Sorrel</title>
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" href="/icon-192.png" />
-</head>
-<body>
-  <div id="app"></div>
-  <script type="module" src="/src/main.js"></script>
-</body>
-</html>
-```
-
-Update `src/main.js` bootstrap:
-1. Load profile + state + diary + training + fasting + custom foods + photos
-2. Hoist `window.profile`, `window.state`, `window.foodDiary` (bridge for any straggler reads)
-3. Call `modals.mountAll()`
-4. Mount UI shell + nav (lift from monolith)
-5. Call `installSwitchTab()` (orchestrator from slice 5)
-6. Register service worker (Step 4 of original plan)
-
-Delete:
-- `sorrel_v1.6.31_final.html` (duplicate backup)
-- `test/` folder
-- Monolith inline HTML (modals + tab content)
-- Monolith JS: tab renders (`renderFoodDiary`, `updateMainPagePlanner`, `renderDynamicShopping`), lifted helpers, patch IIFE guards
-- 24 smoke functions
-
-### 8.3 PWA + flip GH Pages (Step 4 + Final flip)
-
-- `public/manifest.webmanifest`, `src/pwa/sw.js`, service worker registration in `main.js`
-- Settings: export/import backup (Step 5)
-- Change `.github/workflows/deploy.yml` trigger from `workflow_dispatch` to `push: main`
+- Change `.github/workflows/deploy.yml` trigger: `workflow_dispatch` → `push: main`
 - Switch repo Pages source to "GitHub Actions"
+
+### 4. Long tail (post-ship, not blocking)
+
+Lift remaining ~29K LOC main app body to reach true thin shell. Major items:
+- `renderFoodDiary` + diary helpers (~3K LOC) → `src/ui/diary.js`
+- `updateMainPagePlanner` + plan helpers (~5.5K LOC) → `src/ui/plan.js`
+- `renderDynamicShopping` + shopping UI (~2K LOC) → `src/ui/shopping.js`
+- All cross-tab helpers listed above → appropriate `src/features/` modules
+- `changeDiaryDate`, `openFoodSearch`, etc. → domain modules
+- Strip modal HTML from head (L1–2639) once `modals.mountAll()` fully covers all
+
+True thin shell target: `index.html` ~30 lines.
+
+---
+
+## Build size history
+
+| After session | index.html | gzip |
+|---|---|---|
+| Session 9 (shell swap) | 1,769 KB | 411 KB |
+| Session 10 (IIFE delete) | 1,315 KB | 303 KB |
+| Target (thin shell) | ~3 KB | — |
 
 ---
 
@@ -377,28 +274,12 @@ Delete:
 pnpm.cmd run build      # green after each step
 pnpm.cmd run preview    # serve dist/ for tab walkthrough
 pnpm.cmd run dev        # hot-reload dev server
-
-git status; git diff --stat
 ```
-
-Browser smoke (after slice 8 cutover):
-- Open each tab → tab content renders
-- Open each modal from its trigger → renders + closes + form submits
-- localStorage writes persist (profile, custom foods, diary, exercise log, photos, trial, fasting)
-- Cross-tab callbacks fire (log food → diary updates + plan rings refresh)
-
-Build size targets (after slice 8):
-- `index.html` shell: ~3 KB
-- `index.css`: 17 KB
-- `index.js` entry: ~70 KB
-- Vendor chunks: chart 200 KB, quagga 154 KB
-- **Total initial**: ~440 KB (down from 1.88 MB)
 
 ---
 
 ## Key file paths
 
-- Slice 7 plan (canonical): `C:\Users\abark\.claude\plans\next-session-md-replicated-hoare.md`
 - Full refactor plan: `C:\Users\abark\.claude\plans\how-would-you-improve-mighty-rabbit.md`
 - This handoff: `NEXT_SESSION.md`
 - Project instructions: `CLAUDE.md`
@@ -410,13 +291,18 @@ Build size targets (after slice 8):
 
 ## Path / shell notes
 
-- Git Bash uses `/mnt/c/Users/abark/OneDrive/fitness_app/` (WSL prefix). Project CLAUDE.md says `/c/` but `/c/` resolves to a no-such-directory error; `/mnt/c/` is what works.
-- `sed` and `awk` fail with absolute `/mnt/c/...` paths in this RTK environment; use relative paths from `pwd` instead.
-- Always run `pnpm.cmd`, `npx.cmd`, `npm.cmd` (Windows). Bare `pnpm` fails from Git Bash.
+- Bash tool runs in Git Bash context. Working dir: `/c/Users/abark/OneDrive/fitness_app`.
+- Use relative paths for `sed`/`awk`/`grep` — absolute paths fail via RTK.
+- Always run `pnpm.cmd`, `npx.cmd`, `npm.cmd`. Bare `pnpm` fails: RTK spawns
+  processes directly (not via bash shell), so shell script wrappers fail. `pnpm.cmd`
+  is a Win32 binary RTK can spawn.
+- If something does not work, stop. Ask.
 
 ## Design decisions (don't relitigate)
 
-1. **Bridge pattern.** `window.Sorrel.{namespace}` for lifted modules + `window.X` shims for cross-tab helpers + modal templates auto-mount via `ensureMounted`.
+1. **Bridge pattern.** `window.Sorrel.{namespace}` for lifted modules + `window.X`
+   shims for cross-tab helpers + modal templates auto-mount via `ensureMounted`.
 2. **Behavior-preserving.** Every existing feature works after rewrite.
 3. **No automated tests.** Manual browser smoke only.
-4. **GitHub Pages stays on `main / root`** until slice 8 ships. Workflow `workflow_dispatch` only. Switch to GitHub Actions source + `push: main` AFTER slice 8.
+4. **GH Pages** stays on `main / root` until slice 8.3 ships.
+   Workflow `workflow_dispatch` only until then.

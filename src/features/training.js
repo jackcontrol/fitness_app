@@ -8,7 +8,8 @@
 // DOM rendering (renderExerciseLog, renderCardioList, etc.) lives in the
 // training UI module (slice 5). This module is DOM-free.
 
-import { todayISO } from '../utils/dates.js';
+import { todayISO, toLocalISO } from '../utils/dates.js';
+import { appState } from '../state/accessors.js';
 
 const LOG_KEY = 'exercise-log';
 
@@ -150,6 +151,53 @@ export function getIntensityRecommendation(level) {
 }
 
 export function getTodaysIntensityRecommendation() {
-  const level = (typeof window.getRecoveryLevel === 'function') ? window.getRecoveryLevel() : null;
-  return getIntensityRecommendation(level);
+  return getIntensityRecommendation(getRecoveryLevel(todayISO()));
+}
+
+export function ensureRecoveryState() {
+  const s = appState();
+  if (!s) return;
+  if (!s.recoveryLog) s.recoveryLog = {};
+  if (!s.recoveryAdjustments) s.recoveryAdjustments = [];
+  if (s.recoveryBaseline === undefined) s.recoveryBaseline = null;
+}
+
+export function computeRecoveryBaseline() {
+  ensureRecoveryState();
+  const s = appState();
+  if (!s) return null;
+  const cutoff = toLocalISO(new Date(Date.now() - 30 * 86400000));
+  const recent = Object.entries(s.recoveryLog || {})
+    .filter(([d, v]) => d >= cutoff && typeof v.hrv === 'number')
+    .map(([, v]) => v.hrv);
+  if (recent.length < 3) return null;
+  const mean = recent.reduce((a, b) => a + b, 0) / recent.length;
+  const variance = recent.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / recent.length;
+  const stdDev = Math.sqrt(variance);
+  return { mean: Math.round(mean * 10) / 10, stdDev: Math.round(stdDev * 10) / 10, sampleSize: recent.length };
+}
+
+export function getRecoveryLevel(dateISO) {
+  ensureRecoveryState();
+  const s = appState();
+  if (!s) return null;
+  const date = dateISO || todayISO();
+  const entry = (s.recoveryLog || {})[date];
+  if (!entry) return null;
+  if (typeof entry.recoveryScore === 'number') {
+    if (entry.recoveryScore >= 80) return 'optimal';
+    if (entry.recoveryScore >= 60) return 'good';
+    if (entry.recoveryScore >= 40) return 'low';
+    return 'depleted';
+  }
+  if (typeof entry.hrv === 'number') {
+    const baseline = s.recoveryBaseline || computeRecoveryBaseline();
+    if (!baseline) return null;
+    const z = (entry.hrv - baseline.mean) / Math.max(baseline.stdDev, 1);
+    if (z >= 0.5) return 'optimal';
+    if (z >= -0.5) return 'good';
+    if (z >= -1.5) return 'low';
+    return 'depleted';
+  }
+  return null;
 }

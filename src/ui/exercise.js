@@ -8,8 +8,13 @@
 // Modal open/close handlers deferred to slice 7.
 
 import { cardioDatabase, strengthDatabase } from '../data/exercises.js';
-import { toLocalISO } from '../utils/dates.js';
+import { toLocalISO, todayISO } from '../utils/dates.js';
 import { formatDiaryDate } from '../features/diary.js';
+import { appState } from '../state/accessors.js';
+import {
+  ensureRecoveryState, computeRecoveryBaseline, getRecoveryLevel,
+  getTodaysIntensityRecommendation,
+} from '../features/training.js';
 
 let bysetSession = { mode: 'quick', sets: [] };
 let restTimerInterval = null;
@@ -611,6 +616,95 @@ function deleteStrengthExercise(index) {
 
 export const render = renderExerciseLog;
 
+export function renderHealthRecovery(targetId) {
+  const destId = targetId || 'train-recovery-content';
+  const dest = document.getElementById(destId);
+  if (!dest) return;
+
+  ensureRecoveryState();
+  const s = appState() || {};
+  const baseline = computeRecoveryBaseline();
+  const todayEntry = (s.recoveryLog && s.recoveryLog[todayISO()]) || {};
+  const rec = getTodaysIntensityRecommendation();
+
+  const past7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const entry = (s.recoveryLog && s.recoveryLog[iso]) || {};
+    past7.push({
+      day: ['Su','M','T','W','Th','F','Sa'][d.getDay()],
+      score: entry.recoveryScore,
+      hrv: entry.hrv,
+      level: getRecoveryLevel(iso),
+      isToday: i === 0,
+    });
+  }
+
+  const levelColors = { optimal: '#0a7d5a', good: '#d97706', low: '#f59e0b', depleted: '#dc2626' };
+
+  dest.innerHTML = `
+    <div class="card">
+      <div class="card-header">⚡ Today's Recovery</div>
+      ${rec ? `
+        <div style="background:linear-gradient(135deg,${rec.color},${rec.color}dd);color:white;padding:18px;border-radius:12px;margin-bottom:14px;">
+          <div style="font-size:32px;margin-bottom:6px;">${rec.emoji}</div>
+          <div style="font-size:20px;font-weight:700;">${rec.label}</div>
+          <div style="font-size:13px;opacity:0.95;margin-top:8px;line-height:1.4;"><strong>Training:</strong> ${rec.training}</div>
+          <div style="font-size:13px;opacity:0.95;margin-top:6px;line-height:1.4;"><strong>Nutrition:</strong> ${rec.nutrition}</div>
+        </div>
+      ` : `
+        <div style="padding:16px;background:#f4f1ec;border-radius:10px;margin-bottom:14px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">📊</div>
+          <strong>No recovery data yet</strong>
+          <div style="font-size:13px;color:#5a6573;margin-top:6px;">Log your HRV or sync from Whoop / Oura / Garmin to see today's recommendation.</div>
+        </div>
+      `}
+      <div style="margin-bottom:14px;">
+        <div style="font-size:13px;color:#5a6573;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;">7-day recovery</div>
+        <div style="display:flex;gap:6px;align-items:flex-end;height:90px;">
+          ${past7.map(d => `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;${d.isToday ? 'background:var(--accent-soft);border-radius:6px;padding:4px 2px;margin:-4px -2px;' : ''}">
+              <div style="width:100%;height:60px;display:flex;align-items:flex-end;">
+                <div style="width:100%;background:${d.level ? levelColors[d.level] : (d.isToday ? 'var(--accent-primary)' : '#e0e0e0')};border-radius:4px;height:${d.score ? d.score : (d.hrv && baseline ? Math.min(100, Math.max(20, 50 + (d.hrv - baseline.mean) * 3)) : 25)}%;${d.isToday ? 'box-shadow:0 0 0 2px var(--accent-primary);' : ''}"></div>
+              </div>
+              <div style="font-size:10px;color:${d.isToday ? 'var(--accent-primary)' : '#5a6573'};font-weight:${d.isToday ? '700' : '400'};">${d.day}</div>
+              ${d.isToday ? '<div style="font-size:8px;color:var(--accent-primary);font-weight:700;letter-spacing:0.04em;line-height:1;">TODAY</div>' : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ${baseline ? `
+        <div style="padding:10px 12px;background:#e7f5ee;border-radius:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+          <strong>Your baseline:</strong> ${baseline.mean} ms HRV (±${baseline.stdDev}, n=${baseline.sampleSize})
+        </div>
+      ` : ''}
+      <button onclick="openRecoveryModal()" style="width:100%;padding:14px;min-height:48px;background:#0a7d5a;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:15px;">
+        Log HRV / Recovery →
+      </button>
+    </div>
+    <div class="card" style="margin-top:14px;" id="recovery-guidance-card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <span>🧠 How recovery adjusts your plan</span>
+        <button onclick="event.stopPropagation();toggleRecoveryGuidance()" aria-expanded="${s.recoveryGuidanceExpanded ? 'true' : 'false'}" style="background:var(--bg-elevated);color:var(--accent-primary);border:1.5px solid var(--accent-primary);border-radius:18px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px;">
+          ${s.recoveryGuidanceExpanded ? 'Hide details' : 'Show details'}
+        </button>
+      </div>
+      <div id="recovery-guidance-body" style="${s.recoveryGuidanceExpanded ? '' : 'display:none;'}">
+        <p style="color:#5a6573;font-size:13px;margin:0 0 8px 0;line-height:1.5;">
+          When today's HRV is significantly below your personal baseline, the algorithm reduces today's carbs and overall calories while preserving protein — a one-day override that doesn't permanently change your targets.
+        </p>
+        <div style="font-size:12px;color:#777;line-height:1.7;">
+          <div>🟢 <strong>Optimal</strong> (≥+0.5σ): push hard, full carbs</div>
+          <div>🟡 <strong>Good</strong> (±0.5σ): standard plan</div>
+          <div>🟠 <strong>Low</strong> (-0.5 to -1.5σ): ease up, +10% protein</div>
+          <div>🔴 <strong>Depleted</strong> (&lt;-1.5σ): rest day, -15% carbs, -150 cal</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // Expose for inline onclick handlers in monolith HTML.
 window.addCardioExercise = addCardioExercise;
 window.deleteCardioExercise = deleteCardioExercise;
@@ -628,3 +722,4 @@ window.updateStrengthVolume = updateStrengthVolume;
 window.updateLastSessionCard = updateLastSessionCard;
 window.addStrengthExercise = addStrengthExercise;
 window.deleteStrengthExercise = deleteStrengthExercise;
+window.renderHealthRecovery = renderHealthRecovery;

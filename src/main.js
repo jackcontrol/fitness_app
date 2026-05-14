@@ -42,8 +42,11 @@ import {
 import {
   purchaseCost, weeklyCost, pantryHas, normalizeItems,
   buildItemsFromWeekPlan, shoppingItems,
+  generateShoppingList, parseIngredientString, analyzeStoreRecommendations,
 } from './features/shopping.js';
 import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
+import { getRecoveryLevel } from './features/training.js';
+import { renderHealthRecovery } from './ui/exercise.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
 import { renderPlanNextSteps, renderPlanWeightChip } from './ui/plan.js';
 import { calculateDailyTotals } from './ui/diary.js';
@@ -194,6 +197,13 @@ window.sorrelTaxonomy = TAXONOMY;
 window.calculateDailyTotals = calculateDailyTotals;
 window.closeAddCardio   = () => closeById('addCardioModal');
 window.closeAddStrength = () => closeById('addStrengthModal');
+
+// 8.3 — lifted functions replacing monolith definitions via window overrides.
+window.generateShoppingList = generateShoppingList;
+window.parseIngredientString = parseIngredientString;
+window.analyzeStoreRecommendations = analyzeStoreRecommendations;
+window.getRecoveryLevel = getRecoveryLevel;
+window.renderHealthRecovery = renderHealthRecovery;
 
 // Inject nav + section DOM before DOMContentLoaded fires so monolith
 // boot() callbacks find their target elements when they run.

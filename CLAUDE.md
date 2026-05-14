@@ -1,13 +1,5 @@
 # Sorrel — Project Instructions
 
-## Paths
-- Project root: `/c/Users/abark/OneDrive/fitness_app` (Git Bash format).
-- Source lives in `src/`. Shipping artifact is `dist/index.html` after build.
-
-## Shell
-Use Git Bash, not PowerShell. Do not prefix paths with `/mnt/c/...` — that's
-WSL, and this environment runs Git Bash.
-
 ## Build
 - `pnpm install` — install deps (run once after clone).
 - `pnpm run dev` — local dev server with hot reload. Open the URL it prints.
