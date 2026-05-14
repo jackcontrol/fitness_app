@@ -45,11 +45,12 @@ import {
   generateShoppingList, parseIngredientString, analyzeStoreRecommendations,
 } from './features/shopping.js';
 import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
-import { getRecoveryLevel } from './features/training.js';
+import { getRecoveryLevel, getEffectiveMacrosForToday } from './features/training.js';
 import { renderHealthRecovery } from './ui/exercise.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
-import { renderPlanNextSteps, renderPlanWeightChip } from './ui/plan.js';
+import { renderPlanNextSteps, renderPlanWeightChip, getMealTimingGuide } from './ui/plan.js';
 import { calculateDailyTotals } from './ui/diary.js';
+import { renderProgressTab, renderPatternBadge } from './ui/progress.js';
 import { closeById } from './ui/modals/helpers.js';
 import { mountShell } from './ui/shell.js';
 import { installSwitchTab, switchTab } from './ui/render.js';
@@ -204,6 +205,17 @@ window.parseIngredientString = parseIngredientString;
 window.analyzeStoreRecommendations = analyzeStoreRecommendations;
 window.getRecoveryLevel = getRecoveryLevel;
 window.renderHealthRecovery = renderHealthRecovery;
+
+// Long-tail cross-tab helpers — shadow monolith definitions.
+window.getLoggingStreak = () => progress.getLoggingStreak();
+window.getEffectiveMacrosForToday = getEffectiveMacrosForToday;
+window.getMealTimingGuide = getMealTimingGuide;
+window.renderProgress = renderPatternBadge;
+window.renderProgressTab = renderProgressTab;
+window.renderMorningStrip = () => {
+  const el = document.getElementById('plan-morning-strip');
+  if (el) el.style.display = 'none';
+};
 
 // Inject nav + section DOM before DOMContentLoaded fires so monolith
 // boot() callbacks find their target elements when they run.

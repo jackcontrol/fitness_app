@@ -9,7 +9,7 @@
 // training UI module (slice 5). This module is DOM-free.
 
 import { todayISO, toLocalISO } from '../utils/dates.js';
-import { appState } from '../state/accessors.js';
+import { appState, appProfile } from '../state/accessors.js';
 
 const LOG_KEY = 'exercise-log';
 
@@ -200,4 +200,31 @@ export function getRecoveryLevel(dateISO) {
     return 'depleted';
   }
   return null;
+}
+
+// Returns today's effective macro targets, applying any recovery adjustment
+// (state.recoveryAdjustments) if one exists for today.
+export function getEffectiveMacrosForToday() {
+  const s = appState();
+  const p = appProfile();
+  if (!p) return null;
+  const today = todayISO();
+  const adj = s.recoveryAdjustments && s.recoveryAdjustments.find(a => a.date === today);
+  if (adj) {
+    return {
+      protein: adj.adjProtein,
+      carbs: adj.adjCarbs,
+      fat: adj.adjFat,
+      calories: adj.adjCal,
+      adjusted: true,
+      level: adj.level,
+    };
+  }
+  return {
+    protein: p.protein,
+    carbs: p.carbs,
+    fat: p.fat,
+    calories: p.targetCalories,
+    adjusted: false,
+  };
 }

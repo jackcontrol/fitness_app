@@ -1040,3 +1040,63 @@ export function renderPlanNextSteps() {
 }
 
 window.sorrelRenderPlanNextStepsLifted = renderPlanNextSteps;
+
+// Returns HTML string for the meal timing reference card shown on the Plan
+// tab. Reads profile from the bridge namespace; works without profile (returns
+// universal principles only).
+export function getMealTimingGuide() {
+  const profile = window.Sorrel.getProfile();
+  const pattern = profile && profile.pattern;
+  const focus = profile && profile.focus;
+  const goal = profile && profile.goal;
+
+  const universalSection = `
+    <div style="padding: 14px 14px 10px 14px; font-size: 13px; line-height: 1.7; color: var(--text-secondary);">
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:14px;">Core principles</div>
+      <div style="margin-bottom:6px;"><strong style="color:var(--accent-primary);">Eat protein at every meal.</strong> 30–40g per meal maximizes muscle protein synthesis better than backloading.</div>
+      <div style="margin-bottom:6px;"><strong style="color:var(--accent-primary);">Stop eating 3 hours before bed.</strong> Late meals impair sleep architecture and overnight recovery.</div>
+      <div style="margin-bottom:6px;"><strong style="color:var(--accent-primary);">Train fasted or fed — both work.</strong> What matters is total daily protein and calories, not a specific anabolic window.</div>
+      <div><strong style="color:var(--accent-primary);">Caffeine cutoff: 8+ hours before bed.</strong> Half-life is ~5h; full clearance protects deep sleep.</div>
+    </div>
+  `;
+
+  let specificGuide = '';
+  if (pattern === 'C') {
+    specificGuide = `
+      <div class="meal-timing-card">
+        <strong>⚠️ Pattern C — cortisol-aware timing</strong>
+        <div style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+          • <strong>11 AM:</strong> First meal — breaks the fast, stabilizes blood sugar before cortisol's natural mid-morning spike<br>
+          • <strong>6 PM:</strong> Largest meal of the day — front-load before evening cortisol taper<br>
+          • <strong>Post-workout:</strong> Protein within 30 min if training intensity was high<br>
+          • <strong>8:30 PM:</strong> Optional small protein snack — supports overnight recovery without disrupting sleep
+        </div>
+      </div>
+    `;
+  } else if (focus === 'fat_loss' || goal === 'lose' || goal === 'lose_fat_moderate' || goal === 'moderate_fatloss') {
+    specificGuide = `
+      <div class="meal-timing-card">
+        <strong>Fat loss timing strategy</strong>
+        <div style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+          • <strong>Compress your eating window.</strong> 8–10 hours of eating, 14–16 hours of fasting overnight is well-tolerated and supports adherence.<br>
+          • <strong>Front-load protein.</strong> Hits satiety harder and prevents late-night hunger.<br>
+          • <strong>Largest meal at dinner.</strong> Most people are hungriest then; fighting it leads to break-the-diet snacking.<br>
+          • <strong>Post-workout protein matters more in a deficit.</strong> Preserves muscle when calories are low.
+        </div>
+      </div>
+    `;
+  } else if (focus === 'strength' || goal === 'gain' || goal === 'lean_gain') {
+    specificGuide = `
+      <div class="meal-timing-card">
+        <strong>Muscle gain timing strategy</strong>
+        <div style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+          • <strong>Eat 4–5 times per day.</strong> Easier to hit higher calories without forcing huge meals.<br>
+          • <strong>Pre- and post-training meals carry more weight.</strong> Carbs before, protein + carbs within 1 hour after.<br>
+          • <strong>Casein protein before bed.</strong> 30–40g of slow-digesting protein supports overnight muscle protein synthesis.<br>
+          • <strong>Don't skip breakfast on training days.</strong> Glycogen replenishment starts the moment you wake.
+        </div>
+      </div>
+    `;
+  }
+  return universalSection + specificGuide;
+}

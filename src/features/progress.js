@@ -8,6 +8,7 @@
 
 import { ensure } from '../state/appState.js';
 import { todayISO, toLocalISO, daysBetween } from '../utils/dates.js';
+import { getDiary } from './diary.js';
 
 const PHOTOS_KEY = 'progress-photos';
 
@@ -136,4 +137,34 @@ export function projectGoalDate(state, profile) {
   if ((needed > 0 && weeklyRate < 0) || (needed < 0 && weeklyRate > 0)) return null;
   const weeks = Math.abs(needed / weeklyRate);
   return new Date(Date.now() + weeks * 7 * 86400000);
+}
+
+// Consecutive days with at least one food entry ending today (or yesterday if
+// today has nothing yet — don't break a streak at 7 AM).
+export function getLoggingStreak() {
+  const foodDiary = getDiary();
+  if (!foodDiary || !foodDiary.entries) return 0;
+
+  const hasEntries = (iso) => {
+    const e = foodDiary.entries[iso];
+    if (!e) return false;
+    return ((e.breakfast || []).length + (e.lunch || []).length +
+            (e.dinner || []).length + (e.snacks || []).length) > 0;
+  };
+
+  const today = todayISO();
+  let streak = 0;
+  const cursor = new Date();
+  if (!hasEntries(today)) cursor.setDate(cursor.getDate() - 1);
+
+  for (let i = 0; i < 365; i++) {
+    const iso = toLocalISO(cursor);
+    if (hasEntries(iso)) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
 }

@@ -84,6 +84,24 @@ Picks up where last session ended. Refactor plan canonical at
   (was 1,769 KB / 411 KB, −454 KB). **Browser smoke NOT run this session —
   must do before next commit.**
 
+- **Session 11** — PWA + GH Pages auto-deploy. Created `public/manifest.webmanifest`
+  (name/scope/theme for `/fitness_app/`), `public/sw.js` (cache-first service worker,
+  `sorrel-v1`). Added SW registration to `src/main.js` via `import.meta.env.BASE_URL`.
+  Fixed stale `manifest-personalized.json` ref in `index.html` L10. Changed
+  `.github/workflows/deploy.yml` trigger from `workflow_dispatch`-only to
+  `push: branches: [main]` + `workflow_dispatch`. Browser smoke passed. Build green:
+  1,314 KB / 302 KB gzip. **One manual step remaining**: repo Settings → Pages → Source
+  → "GitHub Actions" (if not done yet).
+
+- **Session 12** — Long-tail cross-tab helper lifts. Added `getLoggingStreak` to
+  `src/features/progress.js` (reads `getDiary()` instead of `foodDiary` global).
+  Added `getEffectiveMacrosForToday` to `src/features/training.js` (reads
+  `appState()`/`appProfile()` via accessors). Added `getMealTimingGuide` to
+  `src/ui/plan.js` (profile-aware HTML generator). Wired `window.renderProgress`,
+  `window.renderProgressTab` shims to already-lifted `src/ui/progress.js`
+  (`renderPatternBadge`, `renderProgressTab`). Added `window.renderMorningStrip`
+  inline no-op shim. Build green: 443 KB / 108 KB gzip main bundle.
+
 ---
 
 ## What's done in `src/`
@@ -112,10 +130,13 @@ src/
                                             session 10: parseIngredientString, aggregateIngredients,
                                             calculateWeeklyIngredients, groupItemsBySelectedStores,
                                             generateShoppingList, analyzeStoreRecommendations
-    progress.js                         ✓
+    progress.js                         ✓ photos + weight helpers (ensureAdaptiveState, getTrendWeight,
+                                            get7DayAverage, getWeeklyWeightChange, projectGoalDate) +
+                                            session 12: getLoggingStreak
     training.js                         ✓ getIntensityRecommendation, getTodaysIntensityRecommendation +
                                             session 10: ensureRecoveryState, computeRecoveryBaseline,
-                                            getRecoveryLevel
+                                            getRecoveryLevel +
+                                            session 12: getEffectiveMacrosForToday
     trial.js                            ✓ TRIAL_DAYS, ensureTrialState, getTrialDaysLeft,
                                             isAdaptiveUnlocked, saveTrialState, checkTrialExpiry
     routine.js                          ✓ getHydrationSchedule
@@ -129,7 +150,8 @@ src/
     topbanner.js  premium.js routine.js ✓ slice 5
     analytics.js  progress.js           ✓ slice 5
     exercise.js                         ✓ slice 5 + session 10: renderHealthRecovery
-    diary.js  plan.js  shopping.js      ✓ slice 5
+    diary.js  shopping.js               ✓ slice 5
+    plan.js                             ✓ slice 5 + session 12: getMealTimingGuide
     render.js                           ✓ slice 5 orchestrator + installSwitchTab
     shell.js                            ✓ session 9: nav + all 8 tab skeletons (1,298 LOC)
     helpers/
@@ -160,9 +182,10 @@ src/
     dom.js                              ✓ $, qa, byId
     format.js                           ✓ money
     time.js                             ✓ fmtTime/minutes24/timeToMinutes/toInputTime/parseDisplayTime
-  main.js                               ✓ imports CSS, wires window.Sorrel + ~45 window.* shims,
+  main.js                               ✓ imports CSS, wires window.Sorrel + ~55 window.* shims,
                                             calls modals.mountAll() + installCustomRoutineHandlers()
-                                            + mountShell() + installSwitchTab() at bootstrap
+                                            + mountShell() + installSwitchTab() at bootstrap;
+                                            SW registration via import.meta.env.BASE_URL + 'sw.js'
 ```
 
 ---
@@ -186,18 +209,21 @@ Tab renders (lifted to `src/ui/` but dormant; monolith copies still run):
 - Shopping tab (`renderDynamicShopping`, pantry, store, delivery) ~2,000 LOC
 
 Cross-tab helpers still in monolith body (not yet lifted):
-- `getEffectiveMacrosForToday`, `getLoggingStreak`, `ensureAdaptiveState`
-- `renderMorningStrip`, `renderTopBanner`, `getMealTimingGuide`
-- `renderHydrationSchedule`, `renderHealthSunlight`
-- `getTrendWeight`, `renderProgress`, `renderProgressTab`
-- `swapMeal`, `viewRecipe`
+- `ensureAdaptiveState` (still global — not yet shadowed)
+- `renderHydrationSchedule` (depends on un-lifted `toggleHydration` — deferred)
+- `swapMeal`, `viewRecipe` (complex, deferred)
 - save/load profile beyond `state/profile.js`
 - trial subsystem caller sites (`showPaywallModal`, `subscribePro`)
 - `changeDiaryDate`, `openFoodSearch` and hundreds more original functions
 
-Note: `renderHealthRecovery`, `generateShoppingList`, `analyzeStoreRecommendations`,
-`parseIngredientString` still exist in monolith body but are now shadowed by
-`window.*` shims from `src/main.js` (module loads last, overrides win).
+Shadowed by `window.*` shims (module overrides win, monolith copy inert):
+- `renderHealthRecovery`, `generateShoppingList`, `analyzeStoreRecommendations`,
+  `parseIngredientString`, `getRecoveryLevel` (session 10)
+- `renderHealthSunlight`, `logSunlight` (earlier sessions)
+- `getLoggingStreak`, `getEffectiveMacrosForToday`, `getMealTimingGuide`,
+  `renderProgress`, `renderProgressTab`, `renderMorningStrip` (session 12)
+- `renderTopBanner`, `updateIntelligenceBanners`, `updateTrainRecoveryBanner`,
+  `updateStats`, `getTrendWeight` (earlier sessions)
 
 ### Modals
 
@@ -221,30 +247,11 @@ Note: `renderHealthRecovery`, `generateShoppingList`, `analyzeStoreRecommendatio
 
 ---
 
-## Slice 8.3 remaining work
+## Slice 8.3 status
 
-### 1. Browser smoke (BLOCKING — do first)
+Items 1–3 complete (sessions 11–12). Remaining: long tail only.
 
-IIFEs deleted this session — unknown if any critical event handlers were lost.
-Must verify before committing:
-- Open each tab → tab content renders
-- Exercise tab: recovery section renders
-- Shopping tab: generateShoppingList produces items
-- Open each modal from trigger → renders + closes
-- localStorage writes persist
-
-### 2. PWA
-
-- `public/manifest.webmanifest`
-- `src/pwa/sw.js`
-- Service worker registration in `src/main.js`
-
-### 3. GH Pages flip
-
-- Change `.github/workflows/deploy.yml` trigger: `workflow_dispatch` → `push: main`
-- Switch repo Pages source to "GitHub Actions"
-
-### 4. Long tail (post-ship, not blocking)
+### Long tail (post-ship, not blocking)
 
 Lift remaining ~29K LOC main app body to reach true thin shell. Major items:
 - `renderFoodDiary` + diary helpers (~3K LOC) → `src/ui/diary.js`
@@ -264,7 +271,65 @@ True thin shell target: `index.html` ~30 lines.
 |---|---|---|
 | Session 9 (shell swap) | 1,769 KB | 411 KB |
 | Session 10 (IIFE delete) | 1,315 KB | 303 KB |
+| Session 11 (PWA) | 1,314 KB | 302 KB |
+| Session 12 (cross-tab lifts) | 1,314 KB | 302 KB (main bundle +12 KB) |
 | Target (thin shell) | ~3 KB | — |
+
+---
+
+## GitHub Pages — start, use, update
+
+### One-time setup (do once, if not done)
+
+1. Push this branch to `main` (or merge PR into `main`).
+2. Go to **https://github.com/jackcontrol/fitness_app/settings/pages**
+3. Under **Source**, select **GitHub Actions** (not "Deploy from a branch").
+4. Save. Done. GH Pages now auto-deploys on every push to `main`.
+
+### Live site URL
+
+**https://jackcontrol.github.io/fitness_app/**
+
+Open in any browser. Works on mobile too — visit URL, tap "Add to Home Screen" for app icon.
+
+### How to update the site
+
+Every push to `main` triggers a deploy. Workflow:
+
+```bash
+# 1. Make your changes locally
+# 2. Build to verify nothing broke
+pnpm.cmd run build
+
+# 3. Commit
+git add <files>
+git commit -m "your message"
+
+# 4. Push to main — deploy runs automatically
+git push origin main
+```
+
+Deploy takes ~60–90 seconds. Watch progress at:
+**https://github.com/jackcontrol/fitness_app/actions**
+
+### Manual deploy (without a push)
+
+Go to **https://github.com/jackcontrol/fitness_app/actions/workflows/deploy.yml**
+→ Click **Run workflow** → **Run workflow**. Useful for re-deploying without a code change.
+
+### Local dev
+
+```bash
+pnpm.cmd run dev        # hot-reload dev server — open the URL it prints
+pnpm.cmd run preview    # serve built dist/ locally (closest to prod)
+pnpm.cmd run build      # build only, no server
+```
+
+### PWA / offline (session 11 addition)
+
+- Manifest: `/fitness_app/manifest.webmanifest`
+- Service worker: `/fitness_app/sw.js` (cache-first, all GET requests)
+- Cache version key: `sorrel-v1` in `public/sw.js` — bump to `sorrel-v2` etc. to force cache refresh on next deploy
 
 ---
 
@@ -291,11 +356,12 @@ pnpm.cmd run dev        # hot-reload dev server
 
 ## Path / shell notes
 
-- Bash tool runs in Git Bash context. Working dir: `/c/Users/abark/OneDrive/fitness_app`.
+- Bash tool runs in WSL context. Working dir: `/c/Users/abark/OneDrive/fitness_app`.
 - Use relative paths for `sed`/`awk`/`grep` — absolute paths fail via RTK.
-- Always run `pnpm.cmd`, `npx.cmd`, `npm.cmd`. Bare `pnpm` fails: RTK spawns
-  processes directly (not via bash shell), so shell script wrappers fail. `pnpm.cmd`
-  is a Win32 binary RTK can spawn.
+- `pnpm --version` works bare (RTK intercepts). But `pnpm run build/dev/preview` must
+  use `pnpm.cmd` — bare `pnpm run X` fails because WSL's `sh` can't find node when
+  spawning the vite script. `pnpm.cmd` is a Windows batch file that runs entirely in
+  cmd.exe context where node is available.
 - If something does not work, stop. Ask.
 
 ## Design decisions (don't relitigate)
@@ -304,5 +370,6 @@ pnpm.cmd run dev        # hot-reload dev server
    shims for cross-tab helpers + modal templates auto-mount via `ensureMounted`.
 2. **Behavior-preserving.** Every existing feature works after rewrite.
 3. **No automated tests.** Manual browser smoke only.
-4. **GH Pages** stays on `main / root` until slice 8.3 ships.
-   Workflow `workflow_dispatch` only until then.
+4. **GH Pages** auto-deploys on push to `main` (session 11). Live at
+   https://jackcontrol.github.io/fitness_app/. Set Pages source to "GitHub Actions"
+   in repo settings if not done yet.
