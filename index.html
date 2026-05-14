@@ -2376,236 +2376,16 @@ h1, h2, h3, .heading {
 </div>
 </div>
 </div>
-<!-- Recipe Rating Modal -->
-<div class="modal" id="recipeRatingModal">
-<div class="modal-content" style="max-width: 500px;">
-<h2 id="ratingModalTitle">Rate This Recipe</h2>
-<p style="color: #5a6573; margin-bottom: 20px;">Share your thoughts and help personalize your experience!</p>
-<div id="ratingRecipeName" style="font-size: 18px; font-weight: 600; margin-bottom: 16px; text-align: center;"></div>
-<!-- Star Rating -->
-<div style="text-align: center; margin-bottom: 20px;">
-<div id="ratingStars" style="font-size: 48px; cursor: pointer; user-select: none;">
-<span class="star" data-rating="1">☆</span>
-<span class="star" data-rating="2">☆</span>
-<span class="star" data-rating="3">☆</span>
-<span class="star" data-rating="4">☆</span>
-<span class="star" data-rating="5">☆</span>
-</div>
-<div id="ratingLabel" style="color: #5a6573; font-size: 14px; margin-top: 8px;">Tap to rate</div>
-</div>
-<!-- Notes -->
-<div style="margin-bottom: 20px;">
-<label style="display: block; font-weight: 600; margin-bottom: 8px;">Personal Notes (Optional)</label>
-<textarea id="ratingNotes" placeholder="What did you like? What would you change? Any tips for next time?" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
-</div>
-<div class="btn-group">
-<button class="btn" onclick="closeRatingModal()" style="background: var(--text-tertiary);">Cancel</button>
-<button class="btn" onclick="saveRating()">Save Rating</button>
-</div>
-</div>
-</div>
-<!-- Food Search Modal -->
-<div class="modal" id="foodSearchModal">
-<div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 style="margin: 0;">Add Food to <span id="food-search-meal-name">Breakfast</span></h2>
-<button onclick="closeFoodSearch()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #94a0ad;">×</button>
-</div>
-<!-- Search Bar -->
-<input id="food-search-input" onkeyup="searchFoodsWithRemote()" placeholder="Search foods (incl. branded items via Open Food Facts)..." style="width: 100%; padding: 14px; border: 2px solid #0a7d5a; border-radius: 8px; font-size: 15px; margin-bottom: 16px;" type="text"/>
-<!-- Quick Action Tabs -->
-<div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-<button class="btn-secondary" id="tab-all" onclick="showAllFoods()" style="font-size: 13px; padding: 8px 14px;">
-        All Foods
-      </button>
-<button class="btn-secondary" id="tab-recent" onclick="showRecentFoodsInSearch()" style="font-size: 13px; padding: 8px 14px;">
-        🕐 Recent
-      </button>
-<button class="btn-secondary" id="tab-favorites" onclick="showFavoriteFoodsInSearch()" style="font-size: 13px; padding: 8px 14px;">
-        ⭐ Favorites
-      </button>
-<button class="btn-secondary" id="tab-quick" onclick="showQuickAddInSearch()" style="font-size: 13px; padding: 8px 14px;">
-        ⚡ Quick Add
-      </button>
-</div>
-<!-- Speed-logging actions: multi-add toggle and copy yesterday -->
-<div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-<button class="btn-secondary" id="multi-add-toggle" onclick="toggleMultiAddMode()" style="font-size: 13px; padding: 8px 14px;">
-        ☰ Multi-add
-      </button>
-<button class="btn-secondary" id="copy-yesterday-btn" onclick="copyYesterdayMeal()" style="font-size: 13px; padding: 8px 14px; display: none;">
-        📋 Copy yesterday
-      </button>
-</div>
-<!-- Search Results -->
-<div id="food-search-results" style="max-height: 400px; overflow-y: auto;">
-<div style="padding: 20px; text-align: center; color: #94a0ad;">
-        Start typing to search for foods...
-      </div>
-</div>
-<!-- Quick Add Section (Hidden by default) -->
-<div id="quick-add-section" style="display: none; padding: 20px; background: #f4f1ec; border-radius: 8px;">
-<h3 style="margin-top: 0;">Quick Add Calories &amp; Macros</h3>
-<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
-<div>
-<label style="display: block; margin-bottom: 4px; font-weight: 600;">Calories</label>
-<input id="quick-calories" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" type="number"/>
-</div>
-<div>
-<label style="display: block; margin-bottom: 4px; font-weight: 600;">Protein (g)</label>
-<input id="quick-protein" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" type="number"/>
-</div>
-<div>
-<label style="display: block; margin-bottom: 4px; font-weight: 600;">Carbs (g)</label>
-<input id="quick-carbs" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" type="number"/>
-</div>
-<div>
-<label style="display: block; margin-bottom: 4px; font-weight: 600;">Fat (g)</label>
-<input id="quick-fat" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" type="number"/>
-</div>
-</div>
-<button class="btn" onclick="addQuickCalories()" style="width: 100%;">
-        Add to <span id="quick-add-meal-name">Meal</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Food Detail Modal -->
-<div class="modal" id="foodDetailModal">
-<div class="modal-content" style="max-width: 500px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 id="food-detail-name" style="margin: 0;">Food Name</h2>
-<button onclick="closeFoodDetail()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #94a0ad;">×</button>
-</div>
-<!-- Serving Size Selector -->
-<div style="margin-bottom: 16px;">
-<label style="display: block; margin-bottom: 6px; font-weight: 600; color: #1a2332;">Serving Size</label>
-<select id="serving-size-selector" onchange="updateFoodDetailNutrition()" style="width: 100%; padding: 12px; border: 2px solid #0a7d5a; border-radius: 8px; font-size: 15px;">
-<!-- Options populated by JS -->
-</select>
-</div>
-<!-- Number of Servings -->
-<div style="margin-bottom: 20px;">
-<label style="display: block; margin-bottom: 6px; font-weight: 600; color: #1a2332;">Number of Servings</label>
-<input id="num-servings" min="0.25" onchange="updateFoodDetailNutrition()" step="0.25" style="width: 100%; padding: 12px; border: 2px solid #0a7d5a; border-radius: 8px; font-size: 15px;" type="number" value="1"/>
-</div>
-<!-- Nutrition Display -->
-<div style="background: var(--accent-gradient); padding: 20px; border-radius: 12px; color: white; margin-bottom: 20px;">
-<div style="text-align: center; margin-bottom: 12px;">
-<div id="food-detail-calories" style="font-size: 36px; font-weight: 700;">0</div>
-<div style="font-size: 14px; opacity: 0.9;">CALORIES</div>
-</div>
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-<div style="text-align: center;">
-<div id="food-detail-protein" style="font-size: 20px; font-weight: 600;">0g</div>
-<div style="font-size: 11px; opacity: 0.8;">PROTEIN</div>
-</div>
-<div style="text-align: center;">
-<div id="food-detail-carbs" style="font-size: 20px; font-weight: 600;">0g</div>
-<div style="font-size: 11px; opacity: 0.8;">CARBS</div>
-</div>
-<div style="text-align: center;">
-<div id="food-detail-fat" style="font-size: 20px; font-weight: 600;">0g</div>
-<div style="font-size: 11px; opacity: 0.8;">FAT</div>
-</div>
-</div>
-</div>
-<!-- Action Buttons -->
-<div class="btn-group">
-<button class="btn" onclick="addFoodToMeal()" style="flex: 1;">
-        Add to <span id="food-detail-meal-name">Meal</span>
-</button>
-<button class="btn-secondary" id="favorite-btn" onclick="toggleFoodFavorite()" style="padding: 12px 20px;">
-        ⭐
-      </button>
-</div>
-</div>
-</div>
-<!-- Barcode Scanner Modal -->
-<div class="modal" id="barcodeScannerModal">
-<div class="modal-content" style="max-width: 600px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 style="margin: 0;">📷 Scan Barcode</h2>
-<button onclick="closeBarcodeScanner()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #94a0ad;">×</button>
-</div>
-<div style="padding: 16px; background: #e3f2fd; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: #1976d2;">
-      📱 <strong>Point your camera at a barcode</strong> on any packaged food product
-    </div>
-<!-- Camera Preview -->
-<div id="barcode-scanner-container" style="position: relative; width: 100%; max-width: 100%; margin-bottom: 16px;">
-<video id="barcode-video" style="width: 100%; border-radius: 8px; background: #000;"></video>
-<canvas id="barcode-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
-</div>
-<!-- Scan Status -->
-<div id="barcode-status" style="padding: 12px; background: #f4f1ec; border-radius: 8px; margin-bottom: 16px; text-align: center; font-weight: 600;">
-      Initializing camera...
-    </div>
-<!-- Manual Entry -->
-<div style="border-top: 1px solid #d8d2c4; padding-top: 16px;">
-<label style="display: block; margin-bottom: 8px; font-weight: 600;">Or enter barcode manually:</label>
-<div style="display: flex; gap: 8px;">
-<input id="manual-barcode-input" placeholder="Enter UPC/EAN code" style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px;" type="text"/>
-<button onclick="lookupManualBarcode()" style="padding: 12px 20px; background: #0a7d5a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-          Lookup
-        </button>
-</div>
-</div>
-<div class="btn-group" style="margin-top: 16px;">
-<button class="btn" onclick="closeBarcodeScanner()" style="background: var(--text-tertiary);">Cancel</button>
-</div>
-</div>
-</div>
-<!-- Food Image Recognition Modal -->
-<div class="modal" id="imageRecognitionModal">
-<div class="modal-content" style="max-width: 600px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 style="margin: 0;">📸 Identify Food</h2>
-<button onclick="closeImageRecognition()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #94a0ad;">×</button>
-</div>
-<div style="padding: 16px; background: #e8f5e9; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: #2e7d32;">
-      🤖 <strong>AI-powered food recognition</strong> - Take a photo or upload an image
-    </div>
-<!-- Photo Options -->
-<div style="display: flex; gap: 12px; margin-bottom: 16px;">
-<button onclick="capturePhoto()" style="flex: 1; padding: 16px; background: white; border: 2px solid #0a7d5a; color: #0a7d5a; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px;">
-        📷 Take Photo
-      </button>
-<button onclick="uploadPhoto()" style="flex: 1; padding: 16px; background: white; border: 2px solid #0a7d5a; color: #0a7d5a; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px;">
-        📁 Upload Image
-      </button>
-</div>
-<!-- Hidden file input -->
-<input accept="image/*" id="food-image-input" onchange="processUploadedImage()" style="display: none;" type="file"/>
-<!-- Image Preview -->
-<div id="food-image-preview" style="display: none; margin-bottom: 16px;">
-<img id="food-preview-img" style="width: 100%; border-radius: 8px; max-height: 300px; object-fit: cover;"/>
-</div>
-<!-- Camera View (for capture) -->
-<div id="food-camera-container" style="display: none; margin-bottom: 16px;">
-<video autoplay="" id="food-camera-video" style="width: 100%; border-radius: 8px;"></video>
-<button onclick="takeFoodPhoto()" style="width: 100%; margin-top: 12px; padding: 16px; background: #0a7d5a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px;">
-        📸 Capture
-      </button>
-</div>
-<!-- Recognition Results -->
-<div id="food-recognition-results" style="display: none;">
-<div style="padding: 16px; background: #f4f1ec; border-radius: 8px; margin-bottom: 16px;">
-<div style="font-weight: 600; margin-bottom: 12px; font-size: 16px;">🎯 Identified Foods:</div>
-<div id="food-predictions-list"></div>
-</div>
-<div style="padding: 12px; background: #fef3c7; border-radius: 8px; font-size: 13px; color: #856404;">
-        💡 <strong>Tip:</strong> Nutrition values are estimates. Adjust serving size as needed.
-      </div>
-</div>
-<!-- Status -->
-<div id="image-recognition-status" style="padding: 12px; background: #f4f1ec; border-radius: 8px; text-align: center; font-weight: 600;">
-      Choose an option above to get started
-    </div>
-<div class="btn-group" style="margin-top: 16px;">
-<button class="btn" onclick="closeImageRecognition()" style="background: var(--text-tertiary);">Cancel</button>
-</div>
-</div>
-</div>
+<!-- recipeRatingModal lifted to src/ui/modals/recipeRating.js (mounted by modals.mountAll). -->
+
+<!-- foodSearchModal lifted to src/ui/modals/food.js (mounted by modals.mountAll). -->
+
+<!-- foodDetailModal lifted to src/ui/modals/food.js (mounted by modals.mountAll). -->
+
+<!-- barcodeScannerModal lifted to src/ui/modals/barcode.js (mounted by modals.mountAll). -->
+
+<!-- imageRecognitionModal lifted to src/ui/modals/imageRecognition.js (mounted by modals.mountAll). -->
+
 <!-- Floating Action Button - quick log access from any tab -->
 <button id="fab" onclick="openQuickLogSheet()" style="position:fixed;right:20px;bottom:80px;width:56px;height:56px;border-radius:50%;background:var(--accent-gradient);color:white;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 14px rgba(10,125,90,0.4);z-index:100;display:flex;align-items:center;justify-content:center;font-weight:300;line-height:1;" title="Quick log">+</button>
 <!-- 5-tab nav (v1.4 — emoji replaced with Lucide SVG icons for consistent
@@ -4606,6 +4386,7 @@ const foodDatabase = {
   burrito_bowl: { name: 'Burrito Bowl (chipotle-style)', category: 'restaurant', servings: ['1 bowl'], baseServing: '1 bowl', calories: 655, protein: 40, carbs: 85, fat: 15 },
   sub_sandwich: { name: 'Sub Sandwich (6")', category: 'restaurant', servings: ['6" sub'], baseServing: '6" sub', calories: 360, protein: 18, carbs: 46, fat: 10 },
 };
+window.foodDatabase = foodDatabase; // Slice 15.1 bridge — const, no reassignment.
 
 // LUNCH RECIPE DATABASE (30 Quick Options - 15-25 min total time)
 const lunchRecipes = {
@@ -8711,6 +8492,22 @@ let state = {
 
 let profile = null;
 
+// Slice 15.1 bridge — accessors so window.state / window.profile track the
+// script-scoped let bindings across all reassignment sites (12 profile, 1 state).
+// Modules read window.state / window.profile; let bindings are not properties
+// of the window object in a classic script, so without this bridge module
+// callers see undefined.
+Object.defineProperty(window, 'state', {
+  get: () => state,
+  set: (v) => { state = v; },
+  configurable: true
+});
+Object.defineProperty(window, 'profile', {
+  get: () => profile,
+  set: (v) => { profile = v; },
+  configurable: true
+});
+
 // ─── 90-day adaptive trial system ────────────────────────────────────
 // Pure freemium: app is free to download, all adaptive features unlock for
 // the first 90 days. On day 91, a paywall modal presents (dismissable).
@@ -10697,99 +10494,7 @@ function updateBaselineBanner() {
   }
 }
 
-function logPlannedMeal(mealType, dayIdx) {
-  if (!profile || !profile.weekPlan || !profile.weekPlan[dayIdx]) return;
-  const planned = profile.weekPlan[dayIdx][mealType];
-  if (!planned || !planned.meal || !planned.macros) return;
-  
-  // Initialize diary structures
-  if (!foodDiary) return;
-  // v1.4: Always log to TODAY, not foodDiary.currentDate. The Plan tab's
-  // isLoggedToday check reads today; if currentDate had drifted (user
-  // navigated diary to a different day), entries went to the wrong date
-  // and Plan showed stale state.
-  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  if (typeof ensureDateEntry === 'function') ensureDateEntry(today);
-  
-  const m = planned.macros;
-  const mealName = planned.meal.name || (mealType.charAt(0).toUpperCase() + mealType.slice(1));
-  
-  // Map mealType to diary slot key (same as addFoodToMealDirect)
-  let slotKey = mealType;
-  if (mealType === 'snack') slotKey = 'snacks';
-  
-  if (!foodDiary.entries[today][slotKey]) {
-    foodDiary.entries[today][slotKey] = [];
-  }
-  const slot = foodDiary.entries[today][slotKey];
-  
-  // v1.4.1 IDEMPOTENCE — if today already has a _sourcePlan entry for this
-  // meal, don't push another. Prevents accumulation from double-clicks,
-  // re-renders during animation, or rapid Ate-it/Undo toggling. The Plan
-  // tab is the single canonical source for "did I eat my planned meal" —
-  // one entry per planned meal per day, no more.
-  const alreadyLogged = slot.some(e => e && e._sourcePlan && e.name === mealName);
-  if (alreadyLogged) {
-    if (typeof refreshAfterFoodLog === 'function') refreshAfterFoodLog();
-    if (typeof updateMainPagePlanner === 'function') updateMainPagePlanner();
-    return;
-  }
-  
-  const entry = {
-    foodId: 'planned-' + mealType + '-' + Date.now(),
-    name: mealName,
-    serving: '1 serving (planned)',
-    quantity: 1,
-    calories: m.calories || 0,
-    protein: m.protein || 0,
-    carbs: m.carbs || 0,
-    fat: m.fat || 0,
-    timestamp: Date.now(),
-    _sourcePlan: true  // marker so we can detect & undo
-  };
-  slot.push(entry);
-  // v1.6.2: keep an explicit plan-log marker as a backup for UI state.
-  // This makes the Snack button turn green reliably even if diary slot
-  // normalization differs between older saved states.
-  if (!state.plannedMealLog) state.plannedMealLog = {};
-  if (!state.plannedMealLog[today]) state.plannedMealLog[today] = {};
-  state.plannedMealLog[today][mealType] = mealName;
-  console.log(`📝 Logged: type=${mealType} → slot=${slotKey} · name="${entry.name}" · ${entry.calories}cal`);
-  
-  if (typeof saveFoodDiary === 'function') saveFoodDiary();
-  if (typeof refreshAfterFoodLog === 'function') refreshAfterFoodLog();
-  if (typeof updateMainPagePlanner === 'function') updateMainPagePlanner();
-  if (typeof showLogToast === 'function') showLogToast(`✓ ${entry.name} logged`);
-}
-
-function unlogPlannedMeal(mealType, mealName) {
-  if (!foodDiary || !foodDiary.entries) return;
-  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  const dayEntry = foodDiary.entries[today];
-  if (!dayEntry) return;
-  
-  let slotKey = mealType;
-  if (mealType === 'snack') slotKey = 'snacks';
-  const slot = dayEntry[slotKey] || [];
-  
-  // v1.4.1 — remove ALL _sourcePlan entries matching this meal name, not just
-  // one. Earlier versions only removed the most recent, which left orphans
-  // from any prior duplicate state and made Plan still show "↶ Undo" after
-  // an Undo click.
-  for (let i = slot.length - 1; i >= 0; i--) {
-    if (slot[i] && slot[i]._sourcePlan && slot[i].name === mealName) {
-      slot.splice(i, 1);
-    }
-  }
-  if (state.plannedMealLog && state.plannedMealLog[today]) {
-    delete state.plannedMealLog[today][mealType];
-  }
-  
-  if (typeof saveFoodDiary === 'function') saveFoodDiary();
-  if (typeof refreshAfterFoodLog === 'function') refreshAfterFoodLog();
-  if (typeof updateMainPagePlanner === 'function') updateMainPagePlanner();
-  if (typeof showLogToast === 'function') showLogToast(`↶ Unlogged ${mealName}`);
-}
+// logPlannedMeal + unlogPlannedMeal lifted to src/ui/diary.js (slice 15 phase A).
 
 function refreshAfterFoodLog() {
   // Diary surfaces (recalculates totals + drives Activity Rings via updateMacroSummary)
@@ -11112,85 +10817,8 @@ function toggleFoodFavorite() {
   saveFoodDiary();
 }
 
-// Edit food entry
-function editFoodEntry(mealName, entryIndex) {
-  const dateEntry = foodDiary.entries[foodDiary.currentDate];
-  const entry = dateEntry && dateEntry[mealName] && dateEntry[mealName][entryIndex];
-  if (!entry) return;
-  
-  // Planned meals (logged via "Ate it" on Plan tab) carry _sourcePlan: true
-  // and a synthetic foodId starting with "planned-". Their canonical control
-  // surface is the Plan tab — guide the user back there rather than offering
-  // a confusing "edit" path that won't work.
-  if (entry._sourcePlan) {
-    if (typeof showLogToast === 'function') {
-      showLogToast('Planned meal — tap Undo on the Plan tab to remove, or delete here to clear');
-    }
-    return;
-  }
-  
-  // Quick-add entries (foodId starts with 'quickadd_' or 'quick_add_') are not
-  // in foodDatabase. They can't be edited via the food detail screen — instead
-  // we delete and prompt the user to re-add. Surfacing a graceful message is
-  // better than silently failing.
-  if (!entry.foodId || !foodDatabase[entry.foodId]) {
-    if (typeof showLogToast === 'function') {
-      showLogToast("Quick-add entries can't be edited — delete and re-add");
-    }
-    return;
-  }
-  
-  // Store editing info
-  foodDiary.editingEntry = { meal: mealName, index: entryIndex };
-  foodDiary.currentMeal = mealName;
-  
-  // Load the food
-  selectFood(entry.foodId);
-  
-  // Set quantity to match current entry
-  const qtyInput = document.getElementById('num-servings');
-  if (qtyInput) qtyInput.value = entry.quantity;
-  if (typeof updateFoodDetailNutrition === 'function') updateFoodDetailNutrition();
-}
-
-// Delete food entry
-// Stash the most recent deletion so we can restore on Undo
-let lastDeletedEntry = null;
-
-function deleteFoodEntry(mealName, entryIndex) {
-  const arr = foodDiary.entries[foodDiary.currentDate] && foodDiary.entries[foodDiary.currentDate][mealName];
-  if (!arr || !arr[entryIndex]) return;
-  
-  // Capture entry + position before splice so undo is exact
-  lastDeletedEntry = {
-    date: foodDiary.currentDate,
-    meal: mealName,
-    index: entryIndex,
-    entry: { ...arr[entryIndex] },
-    expiresAt: Date.now() + 6000
-  };
-  
-  arr.splice(entryIndex, 1);
-  saveFoodDiary();
-  refreshAfterFoodLog();
-  showUndoToast('Removed ' + (lastDeletedEntry.entry.name || 'entry'), undoLastDelete);
-}
-
-function undoLastDelete() {
-  if (!lastDeletedEntry || Date.now() > lastDeletedEntry.expiresAt) {
-    if (typeof showLogToast === 'function') showLogToast('Nothing to undo');
-    return;
-  }
-  
-  const { date, meal, index, entry } = lastDeletedEntry;
-  ensureDateEntry(date);
-  // Splice back in at the original index (safe even if other things changed)
-  foodDiary.entries[date][meal].splice(index, 0, entry);
-  lastDeletedEntry = null;
-  saveFoodDiary();
-  refreshAfterFoodLog();
-  showLogToast('Restored');
-}
+// editFoodEntry + deleteFoodEntry + undoLastDelete + lastDeletedEntry
+// lifted to src/ui/diary.js (slice 15 phase A).
 
 // Toast with an Undo action (similar to showLogToast but dismissible + actionable)
 function showUndoToast(message, undoFn) {
@@ -13876,12 +13504,7 @@ function commitQuickAddCalories() {
 // state.macroAdjustments:[{ date, oldCal, newCal, oldP, newP, reason }]
 // state.lastRecalibration: 'YYYY-MM-DD'
 
-function ensureAdaptiveState() {
-  if (!state.weightLog) state.weightLog = [];
-  if (!state.adherenceLog) state.adherenceLog = {};
-  if (!state.macroAdjustments) state.macroAdjustments = [];
-  if (!state.lastRecalibration) state.lastRecalibration = null;
-}
+// ensureAdaptiveState lifted to src/features/progress.js — shadowed by window.* shim (wrapped in main.js).
 
 function todayISO() {
   const d = new Date();
@@ -13907,41 +13530,7 @@ function daysBetween(iso1, iso2) {
 //
 // Reads directly from foodDiary.entries so it's not coupled to the older
 // meal-checkbox state.meals system.
-function getLoggingStreak() {
-  if (typeof foodDiary === 'undefined' || !foodDiary || !foodDiary.entries) return 0;
-  
-  const hasEntries = (iso) => {
-    const e = foodDiary.entries[iso];
-    if (!e) return false;
-    return ((e.breakfast || []).length + (e.lunch || []).length + 
-            (e.dinner || []).length + (e.snacks || []).length) > 0;
-  };
-  
-  const today = todayISO();
-  let streak = 0;
-  let cursor = new Date();
-  
-  // If today has nothing logged yet, start counting from yesterday.
-  // (Don't break a streak just because the user opened the app at 7 AM.)
-  if (!hasEntries(today)) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  
-  // Walk backwards day by day, counting consecutive days with logs.
-  for (let i = 0; i < 365; i++) {
-    const iso = cursor.getFullYear() + '-' + 
-                String(cursor.getMonth() + 1).padStart(2, '0') + '-' + 
-                String(cursor.getDate()).padStart(2, '0');
-    if (hasEntries(iso)) {
-      streak++;
-      cursor.setDate(cursor.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-  
-  return streak;
-}
+// getLoggingStreak lifted to src/features/progress.js — shadowed by window.* shim.
 
 // ─── Weight Logging ────────────────────────────────────────────────
 function logWeight(weightLb, dateISO) {
@@ -13966,18 +13555,7 @@ function logWeight(weightLb, dateISO) {
 // ─── Trend Weight (Kalman-style smoothing) ────────────────────────
 // MacroFactor uses exponentially-weighted moving average for trend weight.
 // Smoothing alpha = 0.1 means ~10-day effective window; robust to daily noise.
-function getTrendWeight() {
-  ensureAdaptiveState();
-  if (state.weightLog.length === 0) return profile ? profile.weight : null;
-  if (state.weightLog.length === 1) return state.weightLog[0].weight;
-  
-  const alpha = 0.1;
-  let trend = state.weightLog[0].weight;
-  for (let i = 1; i < state.weightLog.length; i++) {
-    trend = alpha * state.weightLog[i].weight + (1 - alpha) * trend;
-  }
-  return Math.round(trend * 10) / 10;
-}
+// getTrendWeight lifted to src/features/progress.js — shadowed by window.* shim.
 
 // 7-day moving average (simpler, for display)
 function get7DayAverage() {
@@ -14725,69 +14303,14 @@ function renderPlanWeightChip() {
 // Kept callable so any latent caller (updateIntelligenceBanners shim) doesn't
 // throw. The intelligence layer now flows entirely through renderTopBanner +
 // renderPlanWeightChip.
-function renderMorningStrip() {
-  const strip = document.getElementById('plan-morning-strip');
-  if (strip) strip.style.display = 'none';
-}
+// renderMorningStrip — inline no-op shim in main.js. Monolith body removed.
 
-function renderProgressTab() {
-  // Weight summary
-  const wSum = document.getElementById('progress-weight-summary');
-  if (wSum) {
-    const log = (state && state.weightLog) ? state.weightLog : [];
-    if (log.length === 0) {
-      wSum.innerHTML = `<div style="font-style:italic;">No weight logged yet. Daily weigh-ins drive Sorrel's adaptive macros.</div>`;
-    } else {
-      const latest = log[log.length - 1];
-      const trend = (typeof getTrendWeight === 'function') ? getTrendWeight() : null;
-      wSum.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;">
-          <div>
-            <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;">Latest</div>
-            <div style="font-size:24px;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums;line-height:1.2;">${latest.weight} lb</div>
-          </div>
-          ${trend ? `
-            <div style="text-align:right;">
-              <div style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;">7-day avg</div>
-              <div style="font-size:18px;font-weight:600;color:var(--accent-primary);font-variant-numeric:tabular-nums;">${trend.toFixed(1)} lb</div>
-            </div>
-          ` : ''}
-        </div>
-        <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px;">${log.length} weigh-in${log.length !== 1 ? 's' : ''} total</div>`;
-    }
-  }
-  
-  // Refresh other Progress-tab dynamic content
-  if (typeof updateStats === 'function') updateStats();
-  if (typeof renderProgress === 'function') renderProgress();
-}
+// renderProgressTab lifted to src/ui/progress.js — shadowed by window.* shim.
 
 // ─── Train tab Recovery cross-link ──────────────────────────────────
 // Surface today's recovery state on Train so users see whether to push or
 // pull back. Tap banner → jumps to Health/Recovery for full controls.
-function updateTrainRecoveryBanner() {
-  const banner = document.getElementById('train-recovery-banner');
-  if (!banner) return;
-  
-  const rec = (typeof getTodaysIntensityRecommendation === 'function') ? getTodaysIntensityRecommendation() : null;
-  const labelEl = document.getElementById('train-recovery-label');
-  const recEl = document.getElementById('train-recovery-recommendation');
-  const emojiEl = document.getElementById('train-recovery-emoji');
-  
-  if (rec && rec.label) {
-    if (emojiEl) emojiEl.textContent = rec.emoji || '⚡';
-    if (labelEl) labelEl.textContent = rec.label;
-    if (recEl) recEl.textContent = rec.training || 'Tap for full recovery details.';
-    banner.style.display = 'flex';
-    banner.style.background = `linear-gradient(135deg, ${rec.color || '#0a7d5a'} 0%, ${rec.color || '#10b981'}dd 100%)`;
-  } else {
-    // No recovery data yet — show prompt to set it up
-    if (emojiEl) emojiEl.textContent = '⚡';
-    if (labelEl) labelEl.textContent = 'Tap to set up recovery tracking';
-    if (recEl) recEl.textContent = 'Sync HRV from Whoop / Oura, or log manually in Health → Recovery.';
-    banner.style.display = 'flex';
-  }
-}
+// updateTrainRecoveryBanner lifted to src/ui/helpers/banners.js — shadowed by window.* shim.
 
 function toggleHomeRoutine(which) {
   const body = document.getElementById(`home-${which}-routine-body`);
@@ -14868,14 +14391,7 @@ function toggleIFTimerCard() {
 //      Refreshed each calendar week (Sunday rollover).
 //   2. Recovery cross-link banner — surfaces sleep/training-driven
 //      adjustments at the daily level.
-function updateIntelligenceBanners() {
-  // v1.5: kept as a thin compatibility shim. The real work moved to
-  // renderMorningStrip() and renderTopBanner(). Anything that still calls
-  // updateIntelligenceBanners() now drives both new surfaces.
-  if (!profile) return;
-  if (typeof renderMorningStrip === 'function') renderMorningStrip();
-  if (typeof renderTopBanner === 'function') renderTopBanner();
-}
+// updateIntelligenceBanners lifted to src/ui/helpers/banners.js — shadowed by window.* shim.
 
 // v1.5.2 Issue #5: Original v1.5 renderMorningStrip removed — see the
 // no-op shim above for compatibility. The morning strip surface itself
@@ -14911,135 +14427,7 @@ function scrollToTodaysMeals(slot) {
 // Each banner has its own dismissal scope (today / weekly / forever).
 // Once dismissed, the cascade falls through to the next eligible
 // message. If none are eligible, the slot stays hidden.
-function renderTopBanner() {
-  const slot = document.getElementById('plan-top-banner');
-  if (!slot || !profile) return;
-  
-  const adaptive = (typeof isAdaptiveUnlocked === 'function') ? isAdaptiveUnlocked() : true;
-  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  
-  // Walk the priority list, returning the first eligible message.
-  const pickBanner = () => {
-    // 1. Recovery signal (today-scoped dismissal)
-    if (adaptive && typeof computeRecoverySignal === 'function') {
-      const recovery = computeRecoverySignal();
-      const dismissed = localStorage.getItem('recovery-banner-dismissed-' + today) === '1';
-      if (recovery && !dismissed) {
-        return {
-          kind: 'recovery',
-          icon: recovery.icon,
-          text: recovery.message,
-          bg: '#fff8e1',
-          border: '#ffe082',
-          textColor: '#5d4037',
-          dismissKey: 'recovery-banner-dismissed-' + today
-        };
-      }
-    }
-    
-    // 2. Trial expiring soon (no dismiss — subscription is the dismiss)
-    if (typeof getTrialBannerData === 'function') {
-      try {
-        const trial = getTrialBannerData();
-        if (trial && trial.show) {
-          return {
-            kind: 'trial',
-            icon: '✨',
-            text: trial.message || 'Trial ending soon — go Pro to keep adaptive features.',
-            bg: 'linear-gradient(135deg,var(--accent-soft) 0%,var(--bg-card) 80%)',
-            border: 'var(--accent-primary)',
-            textColor: 'var(--text-primary)',
-            actionLabel: 'See Pro',
-            action: "switchTab('progress')"  // or wherever the upgrade flow lives
-          };
-        }
-      } catch (e) {}
-    }
-    
-    // 3. Weekly adjustment (week-scoped dismissal)
-    if (adaptive && typeof computeWeeklyAdjustment === 'function') {
-      const adj = computeWeeklyAdjustment();
-      const weekKey = (typeof getCurrentWeekKey === 'function') ? getCurrentWeekKey() : '';
-      const dismissed = localStorage.getItem('weekly-adjustment-dismissed') === weekKey;
-      if (adj && !dismissed) {
-        return {
-          kind: 'weekly',
-          icon: '🧠',
-          label: adj.label,
-          text: adj.headline,
-          subtext: adj.detail,
-          bg: 'linear-gradient(135deg,var(--accent-soft) 0%,var(--bg-card) 70%)',
-          border: 'var(--accent-primary)',
-          textColor: 'var(--text-primary)',
-          dismissKey: 'weekly-adjustment-dismissed',
-          dismissValue: weekKey
-        };
-      }
-    }
-    
-    // 4. Building baseline (no dismiss — it self-resolves at 14 weigh-ins)
-    const weightCount = ((state && state.weightLog) || []).length;
-    const baselineDismissKey = 'baseline-banner-dismissed-' + (typeof getCurrentWeekKey === 'function' ? getCurrentWeekKey() : today);
-    const baselineDismissed = localStorage.getItem(baselineDismissKey) === '1';
-    if (weightCount < 14 && !baselineDismissed) {
-      return {
-        kind: 'baseline',
-        icon: '🌱',
-        label: 'Building your baseline',
-        text: `Sorrel adapts to your real weight pattern. ${weightCount}/14 weigh-ins so far.`,
-        bg: 'linear-gradient(135deg,var(--accent-soft) 0%,var(--bg-card) 100%)',
-        border: 'var(--accent-primary)',
-        textColor: 'var(--text-primary)',
-        dismissKey: baselineDismissKey,
-        dismissValue: '1'
-      };
-    }
-    
-    return null;
-  };
-  
-  const banner = pickBanner();
-  if (!banner) {
-    slot.style.display = 'none';
-    return;
-  }
-  
-  // Render the chosen banner. Same DOM shape regardless of kind, so
-  // the visual rhythm stays consistent across messages.
-  const labelHtml = banner.label ? `
-    <div style="font-size:11px;color:var(--accent-deep);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:3px;">${banner.label}</div>
-  ` : '';
-  
-  const subtextHtml = banner.subtext ? `
-    <div style="font-size:12px;color:var(--text-secondary);margin-top:5px;line-height:1.5;">${banner.subtext}</div>
-  ` : '';
-  
-  const actionHtml = banner.actionLabel ? `
-    <button onclick="${banner.action}" style="flex-shrink:0;padding:8px 14px;background:var(--accent-primary);color:white;border:none;border-radius:14px;cursor:pointer;font-size:12px;font-weight:700;">
-      ${banner.actionLabel}
-    </button>
-  ` : '';
-  
-  const dismissHtml = banner.dismissKey ? `
-    <button onclick="dismissTopBanner('${banner.dismissKey}', ${JSON.stringify(banner.dismissValue || '1')})" style="background:none;border:none;color:var(--text-tertiary);cursor:pointer;font-size:18px;padding:4px 8px;flex-shrink:0;line-height:1;">✕</button>
-  ` : '';
-  
-  slot.style.display = 'block';
-  slot.style.background = banner.bg;
-  slot.style.border = `1px solid ${banner.border}`;
-  slot.innerHTML = `
-    <div style="padding:13px 16px;display:flex;align-items:flex-start;gap:12px;">
-      <div style="font-size:22px;line-height:1;flex-shrink:0;">${banner.icon}</div>
-      <div style="flex:1;min-width:0;color:${banner.textColor};">
-        ${labelHtml}
-        <div style="font-size:13px;font-weight:600;line-height:1.4;">${banner.text}</div>
-        ${subtextHtml}
-      </div>
-      ${actionHtml}
-      ${dismissHtml}
-    </div>
-  `;
-}
+// renderTopBanner lifted to src/ui/topbanner.js — shadowed by window.* shim.
 
 // Generic dismiss handler. Records the dismissal value in localStorage
 // and re-renders the banner slot — the next eligible message in the
@@ -16087,33 +15475,7 @@ function computeRecoveryBaseline() {
 
 // Determine recovery level for a given day
 // Returns: 'optimal' | 'good' | 'low' | 'depleted' | null (no data)
-function getRecoveryLevel(dateISO) {
-  ensureRecoveryState();
-  const date = dateISO || todayISO();
-  const entry = state.recoveryLog[date];
-  if (!entry) return null;
-  
-  // Whoop/Oura provide a 0-100 recovery score directly
-  if (typeof entry.recoveryScore === 'number') {
-    if (entry.recoveryScore >= 80) return 'optimal';
-    if (entry.recoveryScore >= 60) return 'good';
-    if (entry.recoveryScore >= 40) return 'low';
-    return 'depleted';
-  }
-  
-  // HRV-based fallback: compare to user's baseline
-  if (typeof entry.hrv === 'number') {
-    const baseline = state.recoveryBaseline || computeRecoveryBaseline();
-    if (!baseline) return null;
-    const z = (entry.hrv - baseline.mean) / Math.max(baseline.stdDev, 1);
-    if (z >= 0.5) return 'optimal';
-    if (z >= -0.5) return 'good';
-    if (z >= -1.5) return 'low';
-    return 'depleted';
-  }
-  
-  return null;
-}
+// getRecoveryLevel lifted to src/features/training.js — shadowed by window.* shim.
 
 // Generate today's intensity recommendation based on recovery
 function getTodaysIntensityRecommendation() {
@@ -16214,28 +15576,7 @@ function applyRecoveryAdjustment() {
 }
 
 // Get effective macros for today (with recovery adjustment if any)
-function getEffectiveMacrosForToday() {
-  if (!profile) return null;
-  const today = todayISO();
-  const adj = state.recoveryAdjustments && state.recoveryAdjustments.find(a => a.date === today);
-  if (adj) {
-    return {
-      protein: adj.adjProtein,
-      carbs: adj.adjCarbs,
-      fat: adj.adjFat,
-      calories: adj.adjCal,
-      adjusted: true,
-      level: adj.level
-    };
-  }
-  return {
-    protein: profile.protein,
-    carbs: profile.carbs,
-    fat: profile.fat,
-    calories: profile.targetCalories,
-    adjusted: false
-  };
-}
+// getEffectiveMacrosForToday lifted to src/features/training.js — shadowed by window.* shim.
 
 // Manual recovery entry (for users without wearables or as override)
 function logRecovery(data, dateISO) {
@@ -21441,69 +20782,7 @@ function getTodayMeals() {
   ];
 }
 
-function getMealTimingGuide() {
-  // Always return useful content. Even without a profile we can give general
-  // evidence-based guidance — withholding it would be a friction point on
-  // first paint or for guest-browse users.
-  const pattern = profile && profile.pattern;
-  const focus = profile && profile.focus;
-  const goal = profile && profile.goal;
-  const trainingTime = (profile && profile.trainingTime) || null;
-  
-  // Universal meal timing principles that apply to almost everyone, surfaced
-  // first. Pattern/focus-specific guidance appears below as customization.
-  const universalSection = `
-    <div style="padding: 14px 14px 10px 14px; font-size: 13px; line-height: 1.7; color: var(--text-secondary);">
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:14px;">Core principles</div>
-      <div style="margin-bottom:6px;"><strong style="color:var(--accent-primary);">Eat protein at every meal.</strong> 30–40g per meal maximizes muscle protein synthesis better than backloading.</div>
-      <div style="margin-bottom:6px;"><strong style="color:var(--accent-primary);">Stop eating 3 hours before bed.</strong> Late meals impair sleep architecture and overnight recovery.</div>
-      <div style="margin-bottom:6px;"><strong style="color:var(--accent-primary);">Train fasted or fed — both work.</strong> What matters is total daily protein and calories, not a specific anabolic window.</div>
-      <div><strong style="color:var(--accent-primary);">Caffeine cutoff: 8+ hours before bed.</strong> Half-life is ~5h; full clearance protects deep sleep.</div>
-    </div>
-  `;
-  
-  let specificGuide = '';
-  
-  if (pattern === 'C') {
-    specificGuide = `
-      <div class="meal-timing-card">
-        <strong>⚠️ Pattern C — cortisol-aware timing</strong>
-        <div style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
-          • <strong>11 AM:</strong> First meal — breaks the fast, stabilizes blood sugar before cortisol's natural mid-morning spike<br>
-          • <strong>6 PM:</strong> Largest meal of the day — front-load before evening cortisol taper<br>
-          • <strong>Post-workout:</strong> Protein within 30 min if training intensity was high<br>
-          • <strong>8:30 PM:</strong> Optional small protein snack — supports overnight recovery without disrupting sleep
-        </div>
-      </div>
-    `;
-  } else if (focus === 'fat_loss' || goal === 'lose' || goal === 'lose_fat_moderate' || goal === 'moderate_fatloss') {
-    specificGuide = `
-      <div class="meal-timing-card">
-        <strong>Fat loss timing strategy</strong>
-        <div style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
-          • <strong>Compress your eating window.</strong> 8–10 hours of eating, 14–16 hours of fasting overnight is well-tolerated and supports adherence.<br>
-          • <strong>Front-load protein.</strong> Hits satiety harder and prevents late-night hunger.<br>
-          • <strong>Largest meal at dinner.</strong> Most people are hungriest then; fighting it leads to break-the-diet snacking.<br>
-          • <strong>Post-workout protein matters more in a deficit.</strong> Preserves muscle when calories are low.
-        </div>
-      </div>
-    `;
-  } else if (focus === 'strength' || goal === 'gain' || goal === 'lean_gain') {
-    specificGuide = `
-      <div class="meal-timing-card">
-        <strong>Muscle gain timing strategy</strong>
-        <div style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
-          • <strong>Eat 4–5 times per day.</strong> Easier to hit higher calories without forcing huge meals.<br>
-          • <strong>Pre- and post-training meals carry more weight.</strong> Carbs before, protein + carbs within 1 hour after.<br>
-          • <strong>Casein protein before bed.</strong> 30–40g of slow-digesting protein supports overnight muscle protein synthesis.<br>
-          • <strong>Don't skip breakfast on training days.</strong> Glycogen replenishment starts the moment you wake.
-        </div>
-      </div>
-    `;
-  }
-  
-  return universalSection + specificGuide;
-}
+// getMealTimingGuide lifted to src/ui/plan.js — shadowed by window.* shim.
 
 function getHydrationSchedule() {
   // Single source of truth for hydration. Used by both the home-screen totals
@@ -22475,61 +21754,7 @@ function toggleRecipe(recipeId) {
   }
 }
 
-function renderProgress() {
-  if (!profile) return;
-  
-  let patternClass = '';
-  let patternName = '';
-  let patternDesc = '';
-  
-  if (profile.pattern === 'C') {
-    patternClass = 'pattern-c';
-    patternName = 'Pattern C';
-    patternDesc = profile.patternDescription || 'High cortisol / Overtraining - Recovery protocol active';
-  } else if (profile.pattern === 'B') {
-    patternClass = 'pattern-b';
-    patternName = 'Pattern B';
-    patternDesc = profile.patternDescription || 'Minor overreaching - Small adjustments recommended';
-  } else if (profile.pattern === 'A-') {
-    patternClass = 'pattern-a';
-    patternName = 'Pattern A-';
-    patternDesc = profile.patternDescription || 'Minor optimization suggested';
-  } else {
-    patternClass = 'pattern-a';
-    patternName = 'Pattern A';
-    patternDesc = profile.patternDescription || 'Healthy recovery status';
-  }
-  
-  // v1.4 — Issue F: show "Why this pattern?" expandable card with reasoning
-  // generated by detectPatternFromProfile(). Falls back to bare badge if a
-  // legacy profile has no reasoning array.
-  const reasoning = Array.isArray(profile.patternReasoning) ? profile.patternReasoning : [];
-  const whyCard = reasoning.length > 0 ? `
-    <div style="margin-top:14px;padding:12px;background:var(--bg-elevated,#f4f1ec);border-radius:10px;border:1px solid var(--border-subtle,#e0d8cc);cursor:pointer;"
-         onclick="(function(el){var b=el.querySelector('.pattern-why-body');var t=el.querySelector('.pattern-why-toggle');if(b.style.display==='block'){b.style.display='none';t.textContent='Show ▾';}else{b.style.display='block';t.textContent='Hide ▴';}})(this)">
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--text-primary);">
-        <span>🧠 Why this pattern?</span>
-        <span class="pattern-why-toggle" style="font-size:12px;color:var(--text-tertiary);font-weight:500;">Show ▾</span>
-      </div>
-      <div class="pattern-why-body" style="display:none;margin-top:10px;">
-        ${reasoning.map(r => `
-          <div style="padding:10px;margin-top:6px;background:white;border-left:3px solid var(--accent-primary,#0a7d5a);border-radius:6px;font-size:13px;line-height:1.5;color:var(--text-secondary);">
-            ${r}
-          </div>
-        `).join('')}
-        <div style="margin-top:10px;font-size:11px;color:var(--text-tertiary);font-style:italic;line-height:1.5;">
-          Pattern is based on your assessment. As you log weight, recovery, and adherence over time, the protocol auto-adjusts within your pattern bracket.
-        </div>
-      </div>
-    </div>
-  ` : '';
-  
-  document.getElementById('pattern-display').innerHTML = `
-    <span class="pattern-badge ${patternClass}">${patternName}</span>
-    <p style="color: #5a6573; margin-top: 12px; line-height: 1.6;">${patternDesc}</p>
-    ${whyCard}
-  `;
-}
+// renderProgress lifted to src/ui/progress.js#renderPatternBadge — shadowed by window.* shim.
 
 function renderSettings() {
   if (!profile) return;
@@ -24855,45 +24080,7 @@ function renderCheckinHistory() {
   document.getElementById('checkin-history').innerHTML = html;
 }
 
-function updateStats() {
-  // Defensive: many of the elements this function used to update lived inside
-  // the deleted Today section. Skip any that no longer exist.
-  // Activity Rings are now driven exclusively by updateMacroSummary() which
-  // reads the diary — single source of truth, fixes the NaN bug.
-  const set = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-  
-  // Hydration badges and progress (Diary tab now)
-  const hydrationData = (typeof getDayData === 'function') ? getDayData('hydration') : {};
-  const hydrationComplete = Object.values(hydrationData).filter(Boolean).length;
-  const hydrationPercent = Math.round((hydrationComplete / 8) * 100);
-  set('hydration-badge', `${hydrationComplete}/8`);
-  const progressBar = document.getElementById('hydration-progress');
-  if (progressBar) progressBar.style.width = `${hydrationPercent}%`;
-  
-  if (typeof getHydrationSchedule === 'function') {
-    const schedule = getHydrationSchedule();
-    const waterToday = schedule.reduce((sum, item) => sum + (hydrationData[item.id] ? item.oz : 0), 0);
-    set('water-today', `${waterToday}oz`);
-  }
-  
-  // Evening checklist (still exists if/when routine tab is shown)
-  const eveningData = (typeof getDayData === 'function') ? getDayData('evening') : {};
-  const eveningComplete = Object.values(eveningData).filter(Boolean).length;
-  set('evening-badge', `${eveningComplete}/11`);
-  
-  // Shopping (Plan tab)
-  if (typeof shoppingCategories !== 'undefined') {
-    const totalShoppingItems = shoppingCategories.reduce((sum, cat) => sum + cat.items.length, 0);
-    const shoppingComplete = state.shopping ? Object.values(state.shopping).filter(Boolean).length : 0;
-    set('shopping-badge', `${shoppingComplete}/${totalShoppingItems}`);
-  }
-  
-  // Progress tab counters
-  set('days-active', state.currentDay || 0);
-}
+// updateStats lifted to src/ui/helpers/stats.js — shadowed by window.* shim.
 
 function switchTab(tab) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -25022,78 +24209,10 @@ function setHealthSubTab(subtab) {
 // Light exposure is the strongest non-pharmacological circadian lever.
 // Two-tap logging — morning sun (most important) and midday for a
 // full-day count.
-function logSunlight(period) {
-  if (!state.sunlightLog) state.sunlightLog = {};
-  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  if (!state.sunlightLog[today]) state.sunlightLog[today] = {};
-  state.sunlightLog[today][period] = true;
-  state.sunlightLog[today].timestamp = Date.now();
-  if (typeof saveState === 'function') saveState();
-  if (typeof showLogToast === 'function') {
-    showLogToast(`☀️ ${period === 'morning' ? 'Morning' : 'Midday'} sunlight logged`);
-  }
-  renderHealthSunlight();
-}
+// logSunlight lifted to src/features/sunlight.js — shadowed by window.* shim.
 
 
-function renderHealthSunlight() {
-  const summaryEl = document.getElementById('sunlight-week-summary');
-  if (!summaryEl) return;
-  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  const todayLog = (state.sunlightLog && state.sunlightLog[today]) || {};
-  const buttonsEl = document.getElementById('sunlight-log-buttons');
-  if (buttonsEl) {
-    // v1.6.2: neutral default, emerald only after logging. Day pill color is
-    // independent and means “current day,” not “sun logged.”
-    const loggedStyle = 'flex:1;padding:14px;background:var(--accent-primary);color:white;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;min-height:48px;';
-    const openStyle = 'flex:1;padding:14px;background:var(--bg-card);color:var(--text-primary);border:1.5px solid var(--border-subtle);border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;min-height:48px;';
-    buttonsEl.innerHTML = `
-      <button onclick="logSunlight('morning')" style="${todayLog.morning ? loggedStyle : openStyle}">
-        ${todayLog.morning ? '✓ Morning sun logged' : '🌅 Log morning sun'}
-      </button>
-      <button onclick="logSunlight('midday')" style="${todayLog.midday ? loggedStyle : openStyle}">
-        ${todayLog.midday ? '✓ Midday sun logged' : '☀️ Log midday sun'}
-      </button>
-    `;
-  }
-
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const iso = d.toISOString().slice(0, 10);
-    const log = (state.sunlightLog && state.sunlightLog[iso]) || {};
-    days.push({
-      label: ['Su','M','T','W','Th','F','Sa'][d.getDay()],
-      morning: !!log.morning,
-      midday: !!log.midday,
-      isToday: i === 0
-    });
-  }
-  const morningHits = days.filter(d => d.morning).length;
-  const dayHtml = days.map(d => {
-    const outer = d.isToday
-      ? 'background:var(--accent-primary);border-radius:8px;padding:5px 3px;margin:-5px -3px;color:white;'
-      : '';
-    const labelColor = d.isToday ? 'white' : 'var(--text-tertiary)';
-    const labelWeight = d.isToday ? '700' : '400';
-    const barBg = d.isToday
-      ? (d.morning ? 'white' : 'rgba(255,255,255,0.38)')
-      : (d.morning ? 'var(--accent-primary)' : 'var(--border-subtle)');
-    const outline = d.isToday ? '' : '';
-    return `
-      <div style="flex:1;text-align:center;${outer}">
-        <div style="font-size:11px;color:${labelColor};margin-bottom:4px;font-weight:${labelWeight};">${d.label}</div>
-        <div style="height:32px;background:${barBg};border-radius:4px;${outline}"></div>
-        ${d.isToday ? '<div style="font-size:8px;color:white;font-weight:700;letter-spacing:0.04em;line-height:1;margin-top:3px;">TODAY</div>' : ''}
-      </div>`;
-  }).join('');
-  summaryEl.innerHTML = `
-    <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:14px;">${dayHtml}</div>
-    <div style="font-size:13px;color:var(--text-secondary);text-align:center;">
-      Morning sun: <strong style="color:var(--text-primary);">${morningHits} of 7 days</strong>
-    </div>
-  `;
-}
+// renderHealthSunlight lifted to src/features/sunlight.js — shadowed by window.* shim.
 
 function renderHealthBody() {
   // Weight summary
@@ -25143,102 +24262,7 @@ function renderHealthBody() {
 }
 
 
-function renderHealthRecovery(targetId) {
-  // In v1.3 Recovery moved from Health to Train. The function now accepts
-  // an optional target ID so the same render logic feeds either location.
-  // Defaults to 'train-recovery-content' (where Recovery lives now);
-  // older callers passing no arg get the new default.
-  const destId = targetId || 'train-recovery-content';
-  const dest = document.getElementById(destId);
-  if (!dest) return;
-  
-  if (typeof ensureRecoveryState === 'function') ensureRecoveryState();
-  const baseline = (typeof computeRecoveryBaseline === 'function') ? computeRecoveryBaseline() : null;
-  const todayEntry = (state.recoveryLog && state.recoveryLog[todayISO()]) || {};
-  const rec = (typeof getTodaysIntensityRecommendation === 'function') ? getTodaysIntensityRecommendation() : null;
-  
-  // Past 7 days for inline chart
-  const past7 = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    const entry = (state.recoveryLog && state.recoveryLog[iso]) || {};
-    past7.push({
-      day: ['Su','M','T','W','Th','F','Sa'][d.getDay()],
-      score: entry.recoveryScore,
-      hrv: entry.hrv,
-      level: (typeof getRecoveryLevel === 'function') ? getRecoveryLevel(iso) : null,
-      isToday: i === 0  // v1.5.1 Issue #11: mark today for visual distinction
-    });
-  }
-  
-  const levelColors = { optimal: '#0a7d5a', good: '#d97706', low: '#f59e0b', depleted: '#dc2626' };
-  
-  dest.innerHTML = `
-    <div class="card">
-      <div class="card-header">⚡ Today's Recovery</div>
-      ${rec ? `
-        <div style="background:linear-gradient(135deg,${rec.color},${rec.color}dd);color:white;padding:18px;border-radius:12px;margin-bottom:14px;">
-          <div style="font-size:32px;margin-bottom:6px;">${rec.emoji}</div>
-          <div style="font-size:20px;font-weight:700;">${rec.label}</div>
-          <div style="font-size:13px;opacity:0.95;margin-top:8px;line-height:1.4;"><strong>Training:</strong> ${rec.training}</div>
-          <div style="font-size:13px;opacity:0.95;margin-top:6px;line-height:1.4;"><strong>Nutrition:</strong> ${rec.nutrition}</div>
-        </div>
-      ` : `
-        <div style="padding:16px;background:#f4f1ec;border-radius:10px;margin-bottom:14px;text-align:center;">
-          <div style="font-size:32px;margin-bottom:8px;">📊</div>
-          <strong>No recovery data yet</strong>
-          <div style="font-size:13px;color:#5a6573;margin-top:6px;">Log your HRV or sync from Whoop / Oura / Garmin to see today's recommendation.</div>
-        </div>
-      `}
-      
-      <div style="margin-bottom:14px;">
-        <div style="font-size:13px;color:#5a6573;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;">7-day recovery</div>
-        <div style="display:flex;gap:6px;align-items:flex-end;height:90px;">
-          ${past7.map(d => `
-            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;${d.isToday ? 'background:var(--accent-soft);border-radius:6px;padding:4px 2px;margin:-4px -2px;' : ''}">
-              <div style="width:100%;height:60px;display:flex;align-items:flex-end;">
-                <div style="width:100%;background:${d.level ? levelColors[d.level] : (d.isToday ? 'var(--accent-primary)' : '#e0e0e0')};border-radius:4px;height:${d.score ? d.score : (d.hrv && baseline ? Math.min(100, Math.max(20, 50 + (d.hrv - baseline.mean) * 3)) : 25)}%;${d.isToday ? 'box-shadow:0 0 0 2px var(--accent-primary);' : ''}"></div>
-              </div>
-              <div style="font-size:10px;color:${d.isToday ? 'var(--accent-primary)' : '#5a6573'};font-weight:${d.isToday ? '700' : '400'};">${d.day}</div>
-              ${d.isToday ? '<div style="font-size:8px;color:var(--accent-primary);font-weight:700;letter-spacing:0.04em;line-height:1;">TODAY</div>' : ''}
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      
-      ${baseline ? `
-        <div style="padding:10px 12px;background:#e7f5ee;border-radius:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
-          <strong>Your baseline:</strong> ${baseline.mean} ms HRV (±${baseline.stdDev}, n=${baseline.sampleSize})
-        </div>
-      ` : ''}
-      
-      <button onclick="openRecoveryModal()" style="width:100%;padding:14px;min-height:48px;background:#0a7d5a;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:15px;">
-        Log HRV / Recovery →
-      </button>
-    </div>
-    
-    <div class="card" style="margin-top:14px;" id="recovery-guidance-card">
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-        <span>🧠 How recovery adjusts your plan</span>
-        <button onclick="event.stopPropagation();toggleRecoveryGuidance()" aria-expanded="${state && state.recoveryGuidanceExpanded ? 'true' : 'false'}" style="background:var(--bg-elevated);color:var(--accent-primary);border:1.5px solid var(--accent-primary);border-radius:18px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px;">
-          ${state && state.recoveryGuidanceExpanded ? 'Hide details' : 'Show details'}
-        </button>
-      </div>
-      <div id="recovery-guidance-body" style="${state && state.recoveryGuidanceExpanded ? '' : 'display:none;'}">
-        <p style="color:#5a6573;font-size:13px;margin:0 0 8px 0;line-height:1.5;">
-          When today's HRV is significantly below your personal baseline, the algorithm reduces today's carbs and overall calories while preserving protein — a one-day override that doesn't permanently change your targets.
-        </p>
-        <div style="font-size:12px;color:#777;line-height:1.7;">
-          <div>🟢 <strong>Optimal</strong> (≥+0.5σ): push hard, full carbs</div>
-          <div>🟡 <strong>Good</strong> (±0.5σ): standard plan</div>
-          <div>🟠 <strong>Low</strong> (-0.5 to -1.5σ): ease up, +10% protein</div>
-          <div>🔴 <strong>Depleted</strong> (&lt;-1.5σ): rest day, -15% carbs, -150 cal</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
+// renderHealthRecovery lifted to src/ui/exercise.js — shadowed by window.* shim.
 
 // ─── Settings Sheet ─────────────────────────────────────────────
 // Triggered by the gear icon in the header. Houses Profile, Analytics,

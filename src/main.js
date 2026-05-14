@@ -65,7 +65,7 @@ import { $, qa, byId } from './utils/dom.js';
 import { money } from './utils/format.js';
 import { TAXONOMY } from './data/taxonomy.js';
 
-import './ui/topbanner.js';
+import { renderTopBanner } from './ui/topbanner.js';
 
 window.Chart = Chart;
 window.Quagga = Quagga;
@@ -232,6 +232,14 @@ window.ensureAdaptiveState = (state) => {
   if (!window.state) window.state = s;
   return progress.ensureAdaptiveState(s);
 };
+
+// Slice 15.1 — shims missed by Phase B sweep.
+// renderTopBanner: monolith bare-callers (renderProgress paths, intelligence
+// banners cascade) need window.renderTopBanner. Module reads window.Sorrel.* internally.
+window.renderTopBanner = renderTopBanner;
+// getTrendWeight: module signature is (state, profile). Monolith bare-callers
+// pass nothing. Wrap to pull from window.state / window.profile.
+window.getTrendWeight = () => progress.getTrendWeight(window.state, window.profile);
 window.renderDynamicShopping = renderDynamicShopping;
 
 // Inject nav + section DOM before DOMContentLoaded fires so monolith

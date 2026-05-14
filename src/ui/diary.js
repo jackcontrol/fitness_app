@@ -726,6 +726,175 @@ export function openFoodSearch(mealName) {
 
 export const render = renderFoodDiary;
 
+// --- Slice 15 Phase A: B2/B3 food mutation lifts ---
+// Source: index.html L10700-10792 (B2 logPlannedMeal/unlogPlannedMeal) and
+// L11116-11193 (B3 editFoodEntry/lastDeletedEntry/deleteFoodEntry/undoLastDelete).
+// Body preserved verbatim from monolith; state read via window.foodDiary /
+// window.profile / window.state to match the slice-14 bridge.
+
+export function logPlannedMeal(mealType, dayIdx) {
+  const profile = window.profile;
+  if (!profile || !profile.weekPlan || !profile.weekPlan[dayIdx]) return;
+  const planned = profile.weekPlan[dayIdx][mealType];
+  if (!planned || !planned.meal || !planned.macros) return;
+
+  const foodDiary = window.foodDiary;
+  if (!foodDiary) return;
+  // v1.4: Always log to TODAY, not foodDiary.currentDate.
+  const today = todayISO();
+  if (typeof window.ensureDateEntry === 'function') window.ensureDateEntry(today);
+
+  const m = planned.macros;
+  const mealName = planned.meal.name || (mealType.charAt(0).toUpperCase() + mealType.slice(1));
+
+  let slotKey = mealType;
+  if (mealType === 'snack') slotKey = 'snacks';
+
+  if (!foodDiary.entries[today][slotKey]) {
+    foodDiary.entries[today][slotKey] = [];
+  }
+  const slot = foodDiary.entries[today][slotKey];
+
+  // v1.4.1 idempotence — if today already has a _sourcePlan entry for this
+  // meal, don't push another.
+  const alreadyLogged = slot.some(e => e && e._sourcePlan && e.name === mealName);
+  if (alreadyLogged) {
+    if (typeof window.refreshAfterFoodLog === 'function') window.refreshAfterFoodLog();
+    if (typeof window.updateMainPagePlanner === 'function') window.updateMainPagePlanner();
+    return;
+  }
+
+  const entry = {
+    foodId: 'planned-' + mealType + '-' + Date.now(),
+    name: mealName,
+    serving: '1 serving (planned)',
+    quantity: 1,
+    calories: m.calories || 0,
+    protein: m.protein || 0,
+    carbs: m.carbs || 0,
+    fat: m.fat || 0,
+    timestamp: Date.now(),
+    _sourcePlan: true
+  };
+  slot.push(entry);
+  // v1.6.2: explicit plan-log marker for UI state reliability.
+  const state = window.state;
+  if (state) {
+    if (!state.plannedMealLog) state.plannedMealLog = {};
+    if (!state.plannedMealLog[today]) state.plannedMealLog[today] = {};
+    state.plannedMealLog[today][mealType] = mealName;
+  }
+  console.log(`📝 Logged: type=${mealType} → slot=${slotKey} · name="${entry.name}" · ${entry.calories}cal`);
+
+  if (typeof window.saveFoodDiary === 'function') window.saveFoodDiary();
+  if (typeof window.refreshAfterFoodLog === 'function') window.refreshAfterFoodLog();
+  if (typeof window.updateMainPagePlanner === 'function') window.updateMainPagePlanner();
+  if (typeof window.showLogToast === 'function') window.showLogToast(`✓ ${entry.name} logged`);
+}
+
+export function unlogPlannedMeal(mealType, mealName) {
+  const foodDiary = window.foodDiary;
+  if (!foodDiary || !foodDiary.entries) return;
+  const today = todayISO();
+  const dayEntry = foodDiary.entries[today];
+  if (!dayEntry) return;
+
+  let slotKey = mealType;
+  if (mealType === 'snack') slotKey = 'snacks';
+  const slot = dayEntry[slotKey] || [];
+
+  // v1.4.1 — remove ALL _sourcePlan entries matching this meal name.
+  for (let i = slot.length - 1; i >= 0; i--) {
+    if (slot[i] && slot[i]._sourcePlan && slot[i].name === mealName) {
+      slot.splice(i, 1);
+    }
+  }
+  const state = window.state;
+  if (state && state.plannedMealLog && state.plannedMealLog[today]) {
+    delete state.plannedMealLog[today][mealType];
+  }
+
+  if (typeof window.saveFoodDiary === 'function') window.saveFoodDiary();
+  if (typeof window.refreshAfterFoodLog === 'function') window.refreshAfterFoodLog();
+  if (typeof window.updateMainPagePlanner === 'function') window.updateMainPagePlanner();
+  if (typeof window.showLogToast === 'function') window.showLogToast(`↶ Unlogged ${mealName}`);
+}
+
+export function editFoodEntry(mealName, entryIndex) {
+  const foodDiary = window.foodDiary;
+  if (!foodDiary) return;
+  const dateEntry = foodDiary.entries[foodDiary.currentDate];
+  const entry = dateEntry && dateEntry[mealName] && dateEntry[mealName][entryIndex];
+  if (!entry) return;
+
+  // Planned meals route back to Plan tab — they don't edit through food detail.
+  if (entry._sourcePlan) {
+    if (typeof window.showLogToast === 'function') {
+      window.showLogToast('Planned meal — tap Undo on the Plan tab to remove, or delete here to clear');
+    }
+    return;
+  }
+
+  // Quick-add entries aren't in foodDatabase — surface a graceful message.
+  const foodDatabase = window.foodDatabase || {};
+  if (!entry.foodId || !foodDatabase[entry.foodId]) {
+    if (typeof window.showLogToast === 'function') {
+      window.showLogToast("Quick-add entries can't be edited — delete and re-add");
+    }
+    return;
+  }
+
+  foodDiary.editingEntry = { meal: mealName, index: entryIndex };
+  foodDiary.currentMeal = mealName;
+
+  if (typeof window.selectFood === 'function') window.selectFood(entry.foodId);
+
+  const qtyInput = document.getElementById('num-servings');
+  if (qtyInput) qtyInput.value = entry.quantity;
+  if (typeof window.updateFoodDetailNutrition === 'function') window.updateFoodDetailNutrition();
+}
+
+// Stash the most recent deletion so Undo can restore it.
+let lastDeletedEntry = null;
+
+export function deleteFoodEntry(mealName, entryIndex) {
+  const foodDiary = window.foodDiary;
+  if (!foodDiary) return;
+  const arr = foodDiary.entries[foodDiary.currentDate] && foodDiary.entries[foodDiary.currentDate][mealName];
+  if (!arr || !arr[entryIndex]) return;
+
+  lastDeletedEntry = {
+    date: foodDiary.currentDate,
+    meal: mealName,
+    index: entryIndex,
+    entry: { ...arr[entryIndex] },
+    expiresAt: Date.now() + 6000
+  };
+
+  arr.splice(entryIndex, 1);
+  if (typeof window.saveFoodDiary === 'function') window.saveFoodDiary();
+  if (typeof window.refreshAfterFoodLog === 'function') window.refreshAfterFoodLog();
+  if (typeof window.showUndoToast === 'function') {
+    window.showUndoToast('Removed ' + (lastDeletedEntry.entry.name || 'entry'), undoLastDelete);
+  }
+}
+
+export function undoLastDelete() {
+  if (!lastDeletedEntry || Date.now() > lastDeletedEntry.expiresAt) {
+    if (typeof window.showLogToast === 'function') window.showLogToast('Nothing to undo');
+    return;
+  }
+  const foodDiary = window.foodDiary;
+  if (!foodDiary) return;
+  const { date, meal, index, entry } = lastDeletedEntry;
+  if (typeof window.ensureDateEntry === 'function') window.ensureDateEntry(date);
+  foodDiary.entries[date][meal].splice(index, 0, entry);
+  lastDeletedEntry = null;
+  if (typeof window.saveFoodDiary === 'function') window.saveFoodDiary();
+  if (typeof window.refreshAfterFoodLog === 'function') window.refreshAfterFoodLog();
+  if (typeof window.showLogToast === 'function') window.showLogToast('Restored');
+}
+
 // Expose for inline onclick handlers in monolith HTML.
 window.openFoodSearch = openFoodSearch;
 window.repeatYesterdayMeal = repeatYesterdayMeal;
@@ -737,3 +906,8 @@ window.updateCopyYesterdayUI = updateCopyYesterdayUI;
 window.copyYesterdayMeal = copyYesterdayMeal;
 window.addQuickCalories = addQuickCalories;
 window.copyYesterdayMeals = copyYesterdayMeals;
+window.logPlannedMeal = logPlannedMeal;
+window.unlogPlannedMeal = unlogPlannedMeal;
+window.editFoodEntry = editFoodEntry;
+window.deleteFoodEntry = deleteFoodEntry;
+window.undoLastDelete = undoLastDelete;
