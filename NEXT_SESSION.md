@@ -66,6 +66,90 @@ Slice 7 plan: `C:\Users\abark\.claude\plans\next-session-md-replicated-hoare.md`
   - `renderBaselineCard`/`dismissBaselineCard` — plan listed in V166;
     grep returns zero matches. Drop from scope.
 
+- **Session 9** — Slice 8.2b shell swap complete. Created `src/ui/shell.js`
+  (1,298 LOC) with nav + all 8 tab section HTML skeletons extracted verbatim
+  from monolith L2640–3930. Updated `src/main.js`: added imports for
+  calculateDailyTotals/closeById/mountShell/installSwitchTab/switchTab; added
+  3 cheap shims (window.calculateDailyTotals, closeAddCardio, closeAddStrength);
+  mountShell() called at module top (before DOMContentLoaded) so DOM exists
+  when monolith boot() fires; bootstrap() now hoists window.profile/state,
+  calls installSwitchTab() + switchTab(initialTab); removed debug banner.
+  index.html: removed L2640–3930 (nav + sections), replaced with
+  `<div id="app"></div>` — shrunk from 40,265 to 38,975 lines. Build green:
+  77 modules, 390 KB / 92 KB gzip. Browser smoke: **ALL PASSED**.
+
+  **Key architectural facts discovered during planning:**
+  - index.html structure: L1–2639 (head + modal HTML), L2640–3930 (nav +
+    sections, now removed), L3931–~38,975 (main app JS body + IIFE patches).
+  - Main app JS body (~L3931–27,200): original app functions —
+    `changeDiaryDate` (L10851), `openFoodSearch` (L11359),
+    `ensureAdaptiveState` (L17094), `getLoggingStreak` (L17125),
+    `getEffectiveMacrosForToday` (L19432). Cannot delete until lifted.
+  - IIFE patches (~L27,200–38,975): `renderHealthRecovery` (L28690),
+    `generateShoppingList` (L30230), `analyzeStoreRecommendations` (L30518)
+    still needed — lift these first before IIFE deletion.
+  - renderFoodDiary() + other tab renders do PARTIAL updates (getElementById),
+    not innerHTML rebuild — shell.js MUST provide full skeleton, not empty divs.
+
+  **Deferred to 8.3** (requires function lifting before deletion):
+  - Lift `renderHealthRecovery` → `src/ui/exercise.js` or helpers
+  - Lift `generateShoppingList` + `analyzeStoreRecommendations` →
+    `src/features/shopping.js`
+  - Delete all 19 IIFE patch blocks once those 3 functions lifted
+  - True thin shell (30-line index.html) deferred until main app JS body
+    functions fully lifted
+
+- **Session 8** — 8.2b prep. V1622 weekly plan modal reconciled: rewrote
+  `src/ui/modals/weeklyPlan.js` (239 → 397 LOC) from V1622 IIFE body
+  (L37301–37711). Uses sorrel-v1622-week-modal DOM ID, normalizeDay +
+  safeMeal repair bridge, recipe + swap sub-modals, lock/repeat/undo/
+  validate actions, week-button repair. mount() wired from main.js
+  bootstrap(). All sorrelV1622* window.* shims added to main.js. V1628
+  budget shims (sorrelGetBudget, sorrelSetBudget, sorrelCanonicalDietType,
+  sorrelCanonicalAllergens) and V1629 (sorrelClassifyForVegan,
+  sorrelTaxonomy) added. Build green: 66 modules, 277 KB / 68 KB gzip.
+
+  **Key discovery: tab module render() completeness.**
+  `src/ui/render.js#switchTab` calls `mod.render()` on each tab module.
+  Current status:
+  - `src/ui/routine.js` — has `render()` ✓ (calls renderHealthSunlight,
+    renderHealthRoutineFull, renderRoutineTab)
+  - `src/ui/diary.js` — has `renderFoodDiary()` but NO `render()` export
+  - `src/ui/plan.js` — no `render()` export (has renderPlanWeightChip,
+    renderPlanNextSteps only)
+  - `src/ui/shopping.js` — has `renderDynamicShopping()` but NO `render()`
+
+  Shell swap CANNOT proceed until plan/diary/shopping each export a
+  proper standalone `render()`. Currently all three depend on monolith DOM
+  structure (specific child element IDs like `#plan-content`, `#routine-
+  content`, etc.) — render() functions must create or tolerate missing
+  containers.
+
+  **Deferred from session 8 to 8.2b** (requires shell swap):
+  - All 19 patch-IIFE body deletions (V162-V1631 at L33386-39865).
+  - 24 smoke functions (inside IIFE bodies).
+  - V1625 observer — state mirror + pantry bridge. Too monolith-coupled
+    to lift cleanly pre-shell-swap. Drop these wrappers at IIFE deletion.
+  - aiPhotoLog downstream flow.
+  - profileModal inline `<script>` extraction.
+
+  **Shell swap prerequisites (8.2b actual scope):**
+  1. Add `export function render()` to `src/ui/plan.js` that calls
+     `updateMainPagePlanner()` via window.* (monolith render, acceptable
+     during transition) OR creates a self-contained plan section.
+  2. Add `export function render()` to `src/ui/diary.js` wrapping
+     `renderFoodDiary()`.
+  3. Add `export function render()` to `src/ui/shopping.js` wrapping
+     `renderDynamicShopping()`.
+  4. Create a `src/ui/shell.js` that injects the nav + empty tab sections
+     into `document.body` when called from main.js bootstrap.
+  5. Replace monolith index.html with ~30-line Vite shell (keep `<title>`,
+     viewport meta, manifest link, `<div id="app">`, main.js script).
+  6. Wire `installSwitchTab()` from main.js, call `switchTab(initialTab())`
+     on bootstrap.
+  7. Delete all 19 IIFE bodies (reverse order: V1631 → V162).
+  8. Verify all tabs render, all modals open, localStorage persists.
+
 ---
 
 ## What's done in `src/`

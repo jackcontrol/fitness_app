@@ -46,6 +46,10 @@ import {
 import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
 import { renderPlanNextSteps, renderPlanWeightChip } from './ui/plan.js';
+import { calculateDailyTotals } from './ui/diary.js';
+import { closeById } from './ui/modals/helpers.js';
+import { mountShell } from './ui/shell.js';
+import { installSwitchTab, switchTab } from './ui/render.js';
 import { appState, appProfile, saveAll, saveQuiet, saveProfileQuiet } from './state/accessors.js';
 import { toast } from './ui/helpers/toast.js';
 import { esc } from './utils/html.js';
@@ -186,25 +190,30 @@ window.sorrelCanonicalAllergens = canonicalAllergens;
 window.sorrelClassifyForVegan = classifyForVegan;
 window.sorrelTaxonomy = TAXONOMY;
 
+// 8.2b — cheap shims for already-lifted functions missing from window.
+window.calculateDailyTotals = calculateDailyTotals;
+window.closeAddCardio   = () => closeById('addCardioModal');
+window.closeAddStrength = () => closeById('addStrengthModal');
+
+// Inject nav + section DOM before DOMContentLoaded fires so monolith
+// boot() callbacks find their target elements when they run.
+mountShell();
+
 function bootstrap() {
   const profile = getProfile();
   const state = loadState();
+
+  // Hoist bridge globals for monolith code paths that read window.state / window.profile.
+  window.profile = profile;
+  window.state = state;
+
   modals.mountAll();
   modals.weeklyPlan.mount();
-  // Capture-phase delegate for custom routine card buttons.
-  // Safe to install before IIFE deletion: V163 IIFE also installs one,
-  // both handlers fire but the V163 handler short-circuits via
-  // stopImmediatePropagation, so only one CRUD path runs per click.
   installCustomRoutineHandlers();
-  const mountIds = ['app', 'root', 'sorrel-root', 'main-content'];
-  const mount = mountIds.map(id => document.getElementById(id)).find(Boolean);
-  if (mount) {
-    const banner = document.createElement('div');
-    banner.dataset.sorrelBanner = '1';
-    banner.style.cssText = 'padding:6px 10px;font:12px ui-monospace,monospace;background:#0a7d5a;color:#fff;';
-    banner.textContent = `Sorrel modules loaded — profile: ${profile ? 'yes' : 'no'}, state keys: ${Object.keys(state).length}`;
-    mount.prepend(banner);
-  }
+
+  installSwitchTab();  // window.switchTab → lifted render.js router
+  const tab = location.hash.replace('#', '') || 'plan';
+  switchTab(tab);
 }
 
 if (document.readyState === 'loading') {
