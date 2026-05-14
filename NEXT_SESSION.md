@@ -102,6 +102,40 @@ Picks up where last session ended. Refactor plan canonical at
   (`renderPatternBadge`, `renderProgressTab`). Added `window.renderMorningStrip`
   inline no-op shim. Build green: 443 KB / 108 KB gzip main bundle.
 
+- **Session 13** — Wired dormant module functions as live window.* overrides.
+  Added `window.updateMainPagePlanner` → `src/ui/plan.js#updateMainPagePlanner`
+  (plan tab now driven by module). Added `window.ensureAdaptiveState` →
+  `progress.ensureAdaptiveState`. Added `window.changeDiaryDate` →
+  new `src/ui/diary.js#changeDiaryDate` (dual-writes module + `window.foodDiary`
+  so monolith food-log functions stay in sync). Added `window.renderFoodDiary`,
+  `window.renderMealFoods`, `window.updateMacroSummary` → already-lifted
+  `src/ui/diary.js` functions. Added `window.renderDynamicShopping` →
+  already-lifted `src/ui/shopping.js#renderDynamicShopping`.
+  Build green: 459 KB / 112 KB gzip main bundle.
+  **Browser smoke required before next commit.**
+
+- **Session 14** — Long-tail monolith body deletion + B1 lift + assessment bug fixes.
+  Deleted 3,156 LOC dead shimmed copies from monolith (31,870 → 28,695):
+  A1 diary render block, A2 plan render block (~5.5K LOC), A3 shopping render
+  block (~2K LOC). Lifted `openFoodSearch` → `src/ui/diary.js` + `window.openFoodSearch`
+  shim; deleted monolith copy. Added `window.foodDiary = foodDiary` bridge in
+  index.html after `const foodDiary` so module functions can sync state.
+  **Three bug fixes uncovered by browser smoke:**
+  1. Full assessment never persisted profile to localStorage — old monolith
+     `updateMainPagePlanner` read global `profile` var; module version reads
+     localStorage. Added `localStorage.setItem('user-profile', JSON.stringify(profile))`
+     in `saveProfile` before `closeProfileModal()`.
+  2. `closeProfileModal` UI calls wrapped in individual try/catches so one
+     failure doesn't block `updateMainPagePlanner`.
+  3. `window.ensureAdaptiveState = progress.ensureAdaptiveState` shim broke
+     monolith call sites passing no args. Module's `ensureAdaptiveState(state)`
+     required state param → `undefined['weightLog']` threw. Wrapped in main.js
+     to resolve state from `window.state` || `loadState()`.
+  B2 (logPlannedMeal/unlogPlannedMeal) + B3 (deleteFoodEntry) deferred — both
+  mutate `foodDiary.entries` directly, need state bridge work.
+  Build green: 460 KB / 112 KB gzip main bundle. Browser smoke: plan renders
+  after full assessment completion.
+
 ---
 
 ## What's done in `src/`
@@ -192,29 +226,36 @@ src/
 
 ## What's still in the monolith
 
-### index.html current state (session 10)
+### index.html current state (session 14)
 
-- **31,870 lines** (was 38,975 after session 9, 40,265 original)
+- **28,695 lines** (was 31,870 after session 10, 40,265 original)
 - L1–2639: head + modal HTML (still monolith-owned)
 - L2640: `<div id="app"></div>` (shell)
-- L2641–31,868: main app JS body (~29K LOC, all original functions)
-- L31,869–31,870: `</body></html>`
-- **All 19 IIFE patch blocks deleted.**
+- L2641–28,693: main app JS body (~26K LOC)
+- L28,694–28,695: `</body></html>`
+- **All 19 IIFE patch blocks deleted (session 10).**
+- **A1/A2/A3 dead shimmed blocks deleted (session 14, 3,156 LOC).**
 
-### Main app body (L2641–31,868) — cannot delete until lifted
+### Main app body (L2641–28,693) — cannot delete until lifted
 
-Tab renders (lifted to `src/ui/` but dormant; monolith copies still run):
-- Diary tab (`renderFoodDiary`, `renderMealFoods`, swipe-delete, multi-add) ~3,000 LOC
-- Plan tab (`updateMainPagePlanner`, grids, optimizer, `calculateMealRotation`) ~5,500 LOC
-- Shopping tab (`renderDynamicShopping`, pantry, store, delivery) ~2,000 LOC
+Tab renders — **all three deleted in session 14**:
+- ~~Diary tab~~ (A1, 508 LOC) — deleted, module authoritative
+- ~~Plan tab~~ (A2, ~5.5K LOC) — deleted, module authoritative
+- ~~Shopping tab~~ (A3, ~2K LOC) — deleted, module authoritative
+
+Food actions still in monolith (B2/B3 deferred):
+- `logPlannedMeal` / `unlogPlannedMeal` (~130 LOC) — mutates `foodDiary.entries`
+- `deleteFoodEntry` + edit (~200 LOC) — mutates `foodDiary.entries`
 
 Cross-tab helpers still in monolith body (not yet lifted):
-- `ensureAdaptiveState` (still global — not yet shadowed)
+- `ensureAdaptiveState` (still defined in monolith but session 14 wrapper in
+  main.js routes `window.ensureAdaptiveState` to module version)
 - `renderHydrationSchedule` (depends on un-lifted `toggleHydration` — deferred)
 - `swapMeal`, `viewRecipe` (complex, deferred)
 - save/load profile beyond `state/profile.js`
 - trial subsystem caller sites (`showPaywallModal`, `subscribePro`)
-- `changeDiaryDate`, `openFoodSearch` and hundreds more original functions
+- hundreds more original functions
+- `openFoodSearch` — **lifted in session 14**
 
 Shadowed by `window.*` shims (module overrides win, monolith copy inert):
 - `renderHealthRecovery`, `generateShoppingList`, `analyzeStoreRecommendations`,
@@ -224,6 +265,9 @@ Shadowed by `window.*` shims (module overrides win, monolith copy inert):
   `renderProgress`, `renderProgressTab`, `renderMorningStrip` (session 12)
 - `renderTopBanner`, `updateIntelligenceBanners`, `updateTrainRecoveryBanner`,
   `updateStats`, `getTrendWeight` (earlier sessions)
+- `updateMainPagePlanner`, `ensureAdaptiveState` (session 13)
+- `renderFoodDiary`, `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`,
+  `renderDynamicShopping` (session 13)
 
 ### Modals
 
@@ -273,6 +317,8 @@ True thin shell target: `index.html` ~30 lines.
 | Session 10 (IIFE delete) | 1,315 KB | 303 KB |
 | Session 11 (PWA) | 1,314 KB | 302 KB |
 | Session 12 (cross-tab lifts) | 1,314 KB | 302 KB (main bundle +12 KB) |
+| Session 13 (wire dormant shims) | 1,314 KB | 303 KB (main bundle 459 KB / 112 KB) |
+| Session 14 (long-tail delete + B1 + bug fixes) | 1,183 KB | 270 KB (main bundle 460 KB / 112 KB) |
 | Target (thin shell) | ~3 KB | — |
 
 ---
@@ -357,7 +403,7 @@ pnpm.cmd run dev        # hot-reload dev server
 ## Path / shell notes
 
 - Bash tool runs in WSL context. Working dir: `/c/Users/abark/OneDrive/fitness_app`.
-- Use relative paths for `sed`/`awk`/`grep` — absolute paths fail via RTK.
+- Use relative paths.
 - `pnpm --version` works bare (RTK intercepts). But `pnpm run build/dev/preview` must
   use `pnpm.cmd` — bare `pnpm run X` fails because WSL's `sh` can't find node when
   spawning the vite script. `pnpm.cmd` is a Windows batch file that runs entirely in

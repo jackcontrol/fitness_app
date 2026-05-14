@@ -48,8 +48,12 @@ import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
 import { getRecoveryLevel, getEffectiveMacrosForToday } from './features/training.js';
 import { renderHealthRecovery } from './ui/exercise.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
-import { renderPlanNextSteps, renderPlanWeightChip, getMealTimingGuide } from './ui/plan.js';
-import { calculateDailyTotals } from './ui/diary.js';
+import { renderPlanNextSteps, renderPlanWeightChip, getMealTimingGuide, updateMainPagePlanner } from './ui/plan.js';
+import {
+  calculateDailyTotals, renderFoodDiary, renderMealFoods,
+  updateMacroSummary, changeDiaryDate,
+} from './ui/diary.js';
+import { renderDynamicShopping } from './ui/shopping.js';
 import { renderProgressTab, renderPatternBadge } from './ui/progress.js';
 import { closeById } from './ui/modals/helpers.js';
 import { mountShell } from './ui/shell.js';
@@ -196,6 +200,10 @@ window.sorrelTaxonomy = TAXONOMY;
 
 // 8.2b — cheap shims for already-lifted functions missing from window.
 window.calculateDailyTotals = calculateDailyTotals;
+window.renderFoodDiary = renderFoodDiary;
+window.renderMealFoods = renderMealFoods;
+window.updateMacroSummary = updateMacroSummary;
+window.changeDiaryDate = changeDiaryDate;
 window.closeAddCardio   = () => closeById('addCardioModal');
 window.closeAddStrength = () => closeById('addStrengthModal');
 
@@ -216,6 +224,15 @@ window.renderMorningStrip = () => {
   const el = document.getElementById('plan-morning-strip');
   if (el) el.style.display = 'none';
 };
+window.updateMainPagePlanner = updateMainPagePlanner;
+// Wrap so callers can omit the state argument (monolith + plan.js pass none).
+// Resolves state from window.state, falling back to a fresh load.
+window.ensureAdaptiveState = (state) => {
+  const s = state || window.state || loadState();
+  if (!window.state) window.state = s;
+  return progress.ensureAdaptiveState(s);
+};
+window.renderDynamicShopping = renderDynamicShopping;
 
 // Inject nav + section DOM before DOMContentLoaded fires so monolith
 // boot() callbacks find their target elements when they run.

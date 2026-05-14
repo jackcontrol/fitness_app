@@ -670,9 +670,64 @@ function copyYesterdayMeals() {
   else alert('Meals copied from yesterday');
 }
 
+export function changeDiaryDate(days) {
+  const diary = getDiary();
+  const d = new Date(diary.currentDate + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const newDate = d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+  diary.currentDate = newDate;
+  // Keep monolith's foodDiary in sync so its food-log functions target the right date.
+  if (window.foodDiary) window.foodDiary.currentDate = newDate;
+  ensureDate(newDate);
+  renderFoodDiary();
+}
+
+export function openFoodSearch(mealName) {
+  // Sync to monolith's foodDiary — its food-log functions (addFoodFromSearch etc.) read from it.
+  if (window.foodDiary) {
+    window.foodDiary.currentMeal = mealName;
+    window.foodDiary.editingEntry = null;
+  }
+  // Reset multi-add state so each session starts clean.
+  multiAddState = { active: false, selected: [] };
+
+  const cap = mealName.charAt(0).toUpperCase() + mealName.slice(1);
+  const mealEl = document.getElementById('food-search-meal-name');
+  const quickEl = document.getElementById('quick-add-meal-name');
+  if (mealEl) mealEl.textContent = cap;
+  if (quickEl) quickEl.textContent = cap;
+  const searchInput = document.getElementById('food-search-input');
+  if (searchInput) searchInput.value = '';
+
+  const recentFoods = window.foodDiary ? window.foodDiary.recentFoods : [];
+  let willFocusInput = false;
+  if (recentFoods && recentFoods.length > 0) {
+    if (typeof window.showRecentFoodsInSearch === 'function') window.showRecentFoodsInSearch();
+  } else {
+    if (typeof window.showAllFoods === 'function') window.showAllFoods();
+    willFocusInput = true;
+  }
+
+  if (typeof window.updateCopyYesterdayUI === 'function') window.updateCopyYesterdayUI();
+  if (typeof window.updateMultiAddBar === 'function') window.updateMultiAddBar();
+
+  const modal = document.getElementById('foodSearchModal');
+  if (modal) modal.style.display = 'block';
+
+  if (willFocusInput) {
+    setTimeout(() => {
+      const input = document.getElementById('food-search-input');
+      if (input) input.focus();
+    }, 100);
+  }
+}
+
 export const render = renderFoodDiary;
 
 // Expose for inline onclick handlers in monolith HTML.
+window.openFoodSearch = openFoodSearch;
 window.repeatYesterdayMeal = repeatYesterdayMeal;
 window.toggleMultiAddMode = toggleMultiAddMode;
 window.toggleMultiAddItem = toggleMultiAddItem;

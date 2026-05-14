@@ -1,5 +1,6 @@
 # Sorrel — Project Instructions
-
+- Bash tool runs in WSL context. Working dir: `/c/Users/abark/OneDrive/fitness_app`.
+- Use relative paths.
 ## Build
 - `pnpm install` — install deps (run once after clone).
 - `pnpm run dev` — local dev server with hot reload. Open the URL it prints.
