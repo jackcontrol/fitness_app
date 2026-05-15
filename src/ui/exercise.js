@@ -233,7 +233,7 @@ export function renderExerciseLog() {
   updateWeeklyStats();
 }
 
-function updateCardioCalories() {
+export function updateCardioCalories() {
   const exerciseId = document.getElementById('cardio-exercise-selector').value;
   const duration = parseInt(document.getElementById('cardio-duration').value) || 0;
   const exercise = cardioDatabase[exerciseId];
@@ -243,7 +243,7 @@ function updateCardioCalories() {
   if (el) el.textContent = calories;
 }
 
-function addCardioExercise() {
+export function addCardioExercise() {
   const exerciseId = document.getElementById('cardio-exercise-selector').value;
   const duration = parseInt(document.getElementById('cardio-duration').value);
   const notes = document.getElementById('cardio-notes').value.trim();
@@ -284,7 +284,7 @@ function addCardioExercise() {
   }
 }
 
-function deleteCardioExercise(index) {
+export function deleteCardioExercise(index) {
   const log = getLog();
   const arr = log.entries[log.currentDate] && log.entries[log.currentDate].cardio;
   if (!arr || !arr[index]) return;
@@ -522,7 +522,7 @@ function updateLastSessionCard() {
   `;
 }
 
-function addStrengthExercise() {
+export function addStrengthExercise() {
   const exerciseId = document.getElementById('strength-exercise-selector').value;
   const notes = document.getElementById('strength-notes').value.trim();
   const exercise = strengthDatabase[exerciseId];
@@ -592,7 +592,7 @@ function addStrengthExercise() {
   }
 }
 
-function deleteStrengthExercise(index) {
+export function deleteStrengthExercise(index) {
   const log = getLog();
   const arr = log.entries[log.currentDate] && log.entries[log.currentDate].strength;
   if (!arr || !arr[index]) return;
@@ -615,6 +615,55 @@ function deleteStrengthExercise(index) {
 }
 
 export const render = renderExerciseLog;
+
+// Exercise tab init — boot from localStorage + ensure today's entry.
+// State already loaded via window.Sorrel.training.loadExerciseLog() in
+// main.js bootstrap; this just hydrates currentDate's entry slot.
+export function initExerciseLog() {
+  const log = getLog();
+  if (!log.entries[log.currentDate]) {
+    window.Sorrel.training.ensureDateEntry(log.currentDate);
+  }
+}
+
+// Switch between cardio + strength panels inside Exercise tab.
+export function switchExerciseTab(type) {
+  const log = getLog();
+  log.currentExerciseType = type;
+
+  const cardioTab = document.getElementById('exercise-tab-cardio');
+  const strengthTab = document.getElementById('exercise-tab-strength');
+  const cardioContent = document.getElementById('exercise-cardio-content');
+  const strengthContent = document.getElementById('exercise-strength-content');
+  if (!cardioTab || !strengthTab || !cardioContent || !strengthContent) return;
+
+  if (type === 'cardio') {
+    cardioTab.style.background = '#0a7d5a';
+    cardioTab.style.color = 'white';
+    strengthTab.style.background = '#e8e2d6';
+    strengthTab.style.color = '#495057';
+    cardioContent.style.display = 'block';
+    strengthContent.style.display = 'none';
+  } else {
+    strengthTab.style.background = '#0a7d5a';
+    strengthTab.style.color = 'white';
+    cardioTab.style.background = '#e8e2d6';
+    cardioTab.style.color = '#495057';
+    strengthContent.style.display = 'block';
+    cardioContent.style.display = 'none';
+  }
+}
+
+export function changeExerciseDate(days) {
+  const log = getLog();
+  const cur = new Date(log.currentDate + 'T00:00:00');
+  cur.setDate(cur.getDate() + days);
+  log.currentDate = toLocalISO(cur);
+  if (!log.entries[log.currentDate]) {
+    window.Sorrel.training.ensureDateEntry(log.currentDate);
+  }
+  renderExerciseLog();
+}
 
 export function renderHealthRecovery(targetId) {
   const destId = targetId || 'train-recovery-content';

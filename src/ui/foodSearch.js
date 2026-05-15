@@ -4,8 +4,10 @@
 // monolith helpers via `typeof window.X === 'function'` guards.
 
 export function closeFoodSearch() {
-  document.getElementById('foodSearchModal').style.display = 'none';
-  document.getElementById('quick-add-section').style.display = 'none';
+  const modal = document.getElementById('foodSearchModal');
+  if (modal) modal.classList.remove('active');
+  const quick = document.getElementById('quick-add-section');
+  if (quick) quick.style.display = 'none';
 }
 
 export function searchFoods() {

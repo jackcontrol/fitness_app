@@ -100,7 +100,31 @@ import { snackOptions } from './data/snacks.js';
 import { mealForSlot, recipeDbs, ingredientFor, calculateMealMacros } from './features/recipes.js';
 import { estimateMealCost } from './features/budget.js';
 import { getRecoveryLevel, getEffectiveMacrosForToday } from './features/training.js';
-import { renderHealthRecovery } from './ui/exercise.js';
+import {
+  renderHealthRecovery,
+  initExerciseLog, switchExerciseTab, changeExerciseDate,
+  addCardioExercise, deleteCardioExercise,
+  addStrengthExercise, deleteStrengthExercise,
+  updateCardioCalories,
+  renderCardioList, renderStrengthList,
+  updateExerciseSummary, updateWeeklyStats, renderExerciseLog,
+} from './ui/exercise.js';
+import { openSettingsSheet, navigateFromSettingsSheet } from './ui/modals/settings.js';
+import {
+  openQuickLogSheet, quickLogFood, openQuickAddCaloriesModal,
+  selectQuickAddMeal, commitQuickAddCalories,
+} from './ui/modals/quickLog.js';
+import {
+  handleAIPhotoFile, resizeImageForAI, callAIPhotoAnalysis,
+  showAIPhotoReview, updateAIPhotoTotals, confirmAIPhotoLog, showAIPhotoError,
+  escapeAIText,
+} from './features/aiPhotoLog.js';
+import {
+  openVoiceLog, toggleVoiceListening, submitVoiceTranscript,
+  showVoiceLogReview, selectVoiceMealSlot, toggleVoiceFoodSelection,
+  updateVoiceTotals, confirmVoiceLog, closeVoiceLog, showVoiceLogError,
+} from './features/voiceLog.js';
+import { setupInstallPrompt, installPWA, displayPWAStatus } from './pwa/install.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
 import { renderPlanNextSteps, renderPlanWeightChip, getMealTimingGuide, updateMainPagePlanner, viewRecipe, inferLunchInstructions } from './ui/plan.js';
 import {
@@ -366,6 +390,12 @@ window.updateMacroSummary = updateMacroSummary;
 window.changeDiaryDate = changeDiaryDate;
 window.closeAddCardio   = () => closeById('addCardioModal');
 window.closeAddStrength = () => closeById('addStrengthModal');
+// Defensive close shims for legacy onclick refs (stubs deleted from index.html
+// in S21; openers gone in S20 — handlers should never fire but guard anyway).
+window.closeRecipeSwapModal = () => closeById('recipeSwapModal');
+window.closeBreakfastSwapModal = () => closeById('breakfastSwapModal');
+window.closeSnackSwapModal = () => closeById('snackSwapModal');
+window.closeLunchSwapModal = () => closeById('lunchSwapModal');
 
 // 8.3 — lifted functions replacing monolith definitions via window overrides.
 window.generateShoppingList = generateShoppingList;
@@ -489,6 +519,59 @@ window.calculateWeeklyBudget = calculateWeeklyBudget;
 window.distributeRemainingMacros = distributeRemainingMacros;
 window.runBudgetOptimization = runBudgetOptimization;
 
+// Session 21 — settings sheet + quick-log FAB shims.
+window.openSettingsSheet = openSettingsSheet;
+window.navigateFromSettingsSheet = navigateFromSettingsSheet;
+window.openQuickLogSheet = openQuickLogSheet;
+window.quickLogFood = quickLogFood;
+window.openQuickAddCaloriesModal = openQuickAddCaloriesModal;
+window.selectQuickAddMeal = selectQuickAddMeal;
+window.commitQuickAddCalories = commitQuickAddCalories;
+
+// Session 21 — exercise tab init cluster.
+window.initExerciseLog = initExerciseLog;
+window.switchExerciseTab = switchExerciseTab;
+window.changeExerciseDate = changeExerciseDate;
+window.addCardioExercise = addCardioExercise;
+window.deleteCardioExercise = deleteCardioExercise;
+window.addStrengthExercise = addStrengthExercise;
+window.deleteStrengthExercise = deleteStrengthExercise;
+window.updateCardioCalories = updateCardioCalories;
+window.renderCardioList = renderCardioList;
+window.renderStrengthList = renderStrengthList;
+window.updateExerciseSummary = updateExerciseSummary;
+window.updateWeeklyStats = updateWeeklyStats;
+window.renderExerciseLog = renderExerciseLog;
+
+// Session 21 — AI photo log downstream.
+window.handleAIPhotoFile = handleAIPhotoFile;
+window.resizeImageForAI = resizeImageForAI;
+window.callAIPhotoAnalysis = callAIPhotoAnalysis;
+window.showAIPhotoReview = showAIPhotoReview;
+window.updateAIPhotoTotals = updateAIPhotoTotals;
+window.confirmAIPhotoLog = confirmAIPhotoLog;
+window.showAIPhotoError = showAIPhotoError;
+window.escapeAIText = escapeAIText;
+window.openAIPhotoLog = modals.aiPhotoLog.openAIPhotoLog;
+window.closeAIPhotoLog = modals.aiPhotoLog.closeAIPhotoLog;
+
+// Session 21 — voice log downstream.
+window.openVoiceLog = openVoiceLog;
+window.toggleVoiceListening = toggleVoiceListening;
+window.submitVoiceTranscript = submitVoiceTranscript;
+window.showVoiceLogReview = showVoiceLogReview;
+window.selectVoiceMealSlot = selectVoiceMealSlot;
+window.toggleVoiceFoodSelection = toggleVoiceFoodSelection;
+window.updateVoiceTotals = updateVoiceTotals;
+window.confirmVoiceLog = confirmVoiceLog;
+window.closeVoiceLog = closeVoiceLog;
+window.showVoiceLogError = showVoiceLogError;
+window.renderVoiceLogModal = modals.voiceLog.renderVoiceLogModal;
+
+// Session 21 — PWA install prompt.
+window.installPWA = installPWA;
+window.displayPWAStatus = displayPWAStatus;
+
 // Inject nav + section DOM before DOMContentLoaded fires.
 mountShell();
 
@@ -504,7 +587,9 @@ function bootstrap() {
   // Exercise log + trial state need explicit initialization since monolith
   // boot used to do it.
   try { training.loadExerciseLog(); } catch (e) {}
+  try { initExerciseLog(); } catch (e) {}
   try { trial.ensureTrialState(); } catch (e) {}
+  try { setupInstallPrompt(); } catch (e) {}
 
   modals.mountAll();
   modals.weeklyPlan.mount();

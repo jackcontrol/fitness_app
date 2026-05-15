@@ -1308,62 +1308,9 @@ h1, h2, h3, .heading {
     ⚙️
   </button>
 </div>
-<!-- Recipe Swap Modal -->
-<div class="modal" id="recipeSwapModal">
-<div class="modal-content" style="max-width: 600px; position: relative;">
-<button aria-label="Close" onclick="closeRecipeSwapModal()" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: none; background: var(--bg-elevated); color: var(--text-secondary); border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">×</button>
-<h2>Change Today's Dinner</h2>
-<p style="color: #5a6573; margin-bottom: 20px;">Select a new recipe for today. Your macros will stay the same, ingredients will update.</p>
-<div id="recipe-swap-list" style="max-height: 400px; overflow-y: auto;"></div>
-<div class="btn-group" style="margin-top: 20px;">
-<button class="btn" onclick="closeRecipeSwapModal()" style="background: var(--text-tertiary);">Cancel</button>
-</div>
-</div>
-</div>
-<div class="modal" id="breakfastSwapModal">
-<div class="modal-content" style="max-width: 600px; position: relative;">
-<button aria-label="Close" onclick="closeBreakfastSwapModal()" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: none; background: var(--bg-elevated); color: var(--text-secondary); border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">×</button>
-<h2>Change Breakfast</h2>
-<p style="color: #5a6573; margin-bottom: 20px;">Select a different breakfast option. Your macros will stay the same.</p>
-<div id="breakfast-swap-list" style="max-height: 400px; overflow-y: auto;"></div>
-<div class="btn-group" style="margin-top: 20px;">
-<button class="btn" onclick="closeBreakfastSwapModal()" style="background: var(--text-tertiary);">Cancel</button>
-</div>
-</div>
-</div>
-<div class="modal" id="snackSwapModal">
-<div class="modal-content" style="max-width: 600px; position: relative;">
-<button aria-label="Close" onclick="closeSnackSwapModal()" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: none; background: var(--bg-elevated); color: var(--text-secondary); border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">×</button>
-<h2>Change Evening Snack</h2>
-<p style="color: #5a6573; margin-bottom: 20px;">Select a different snack option that fits your macros.</p>
-<div id="snack-swap-list" style="max-height: 400px; overflow-y: auto;"></div>
-<div class="btn-group" style="margin-top: 20px;">
-<button class="btn" onclick="closeSnackSwapModal()" style="background: var(--text-tertiary);">Cancel</button>
-</div>
-</div>
-</div>
-<!-- Lunch swap modal (added v1.3 — lunches were missing this previously) -->
-<div class="modal" id="lunchSwapModal">
-<div class="modal-content" style="max-width: 600px; position: relative;">
-<button aria-label="Close" onclick="closeLunchSwapModal()" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: none; background: var(--bg-elevated); color: var(--text-secondary); border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">×</button>
-<h2>Change Today's Lunch</h2>
-<p style="color: #5a6573; margin-bottom: 20px;">Select a different lunch for today. Macros stay the same.</p>
-<div id="lunch-swap-list" style="max-height: 400px; overflow-y: auto;"></div>
-<div class="btn-group" style="margin-top: 20px;">
-<button class="btn" onclick="closeLunchSwapModal()" style="background: var(--text-tertiary);">Cancel</button>
-</div>
-</div>
-</div>
-<!-- recipeRatingModal lifted to src/ui/modals/recipeRating.js (mounted by modals.mountAll). -->
-
-<!-- foodSearchModal lifted to src/ui/modals/food.js (mounted by modals.mountAll). -->
-
-<!-- foodDetailModal lifted to src/ui/modals/food.js (mounted by modals.mountAll). -->
-
-<!-- barcodeScannerModal lifted to src/ui/modals/barcode.js (mounted by modals.mountAll). -->
-
-<!-- imageRecognitionModal lifted to src/ui/modals/imageRecognition.js (mounted by modals.mountAll). -->
-
+<!-- Modal stubs (recipeSwap/breakfastSwap/snackSwap/lunchSwap/recipeRating/
+     foodSearch/foodDetail/barcode/imageRecognition) all lifted to
+     src/ui/modals/* and injected by modals.mountAll(). -->
 <!-- Floating Action Button - quick log access from any tab -->
 <button id="fab" onclick="openQuickLogSheet()" style="position:fixed;right:20px;bottom:80px;width:56px;height:56px;border-radius:50%;background:var(--accent-gradient);color:white;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 14px rgba(10,125,90,0.4);z-index:100;display:flex;align-items:center;justify-content:center;font-weight:300;line-height:1;" title="Quick log">+</button>
 <!-- 5-tab nav (v1.4 — emoji replaced with Lucide SVG icons for consistent

@@ -714,7 +714,7 @@ export function openFoodSearch(mealName) {
   if (typeof window.updateMultiAddBar === 'function') window.updateMultiAddBar();
 
   const modal = document.getElementById('foodSearchModal');
-  if (modal) modal.style.display = 'block';
+  if (modal) modal.classList.add('active');
 
   if (willFocusInput) {
     setTimeout(() => {
@@ -801,11 +801,14 @@ export function unlogPlannedMeal(mealType, mealName) {
 
   let slotKey = mealType;
   if (mealType === 'snack') slotKey = 'snacks';
-  const slot = dayEntry[slotKey] || [];
+  if (!dayEntry[slotKey]) return;
+  const slot = dayEntry[slotKey];
 
-  // v1.4.1 — remove ALL _sourcePlan entries matching this meal name.
+  // Slot filtered by mealType; log-path idempotence guarantees at most one
+  // _sourcePlan entry per slot. Drop name check — plan.js sometimes passes
+  // empty meal.name while log path falls back to capitalized mealType.
   for (let i = slot.length - 1; i >= 0; i--) {
-    if (slot[i] && slot[i]._sourcePlan && slot[i].name === mealName) {
+    if (slot[i] && slot[i]._sourcePlan) {
       slot.splice(i, 1);
     }
   }

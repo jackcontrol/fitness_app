@@ -3,6 +3,8 @@
 // inside the profileModal HTML). saveProfile wrapper just calls
 // window.saveProfileReal which monolith still defines at L17352.
 
+import { mount as mountProfile } from './profile.js';
+
 let currentPage = 1;
 
 export function getCurrentPage() {
@@ -189,7 +191,10 @@ export function closeProfileEditModal() {
 }
 
 // Lifted from monolith L15814. Reopens modal in edit mode from Settings.
+// Reuses #profileModal (no separate edit modal). Defensive mount in case
+// caller fires before bootstrap mountAll completed.
 export function openProfileEdit() {
+  if (!document.getElementById('profileModal')) mountProfile();
   currentPage = 1;
 
   const pages = document.querySelectorAll('.form-page');
