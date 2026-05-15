@@ -66,7 +66,8 @@ export function navigateFromSettingsSheet(id, type) {
   if (sheet) sheet.remove();
   setTimeout(() => {
     if (type === 'profile') {
-      if (typeof window.openProfileEdit === 'function') window.openProfileEdit();
+      if (typeof window.openProfileRows === 'function') window.openProfileRows();
+      else if (typeof window.openProfileEdit === 'function') window.openProfileEdit();
       else if (typeof window.openProfileModal === 'function') window.openProfileModal();
     } else if (typeof window.switchTab === 'function') {
       window.switchTab(id);

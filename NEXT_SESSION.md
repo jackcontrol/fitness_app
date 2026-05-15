@@ -368,6 +368,207 @@ Picks up where last session ended. Refactor plan canonical at
     `setupInstallPrompt`, `displayPWAStatus`, partner sharing.
   5. Eventually delete head HTML modal cruft entirely → ~30 LOC target.
 
+- **Session 21** — Aggressive S20 follow-up. 4 phases A/B/C/D in one cut.
+  Index.html: 1,400 → 1,354 (−46 / Phase B head sweep). Build green:
+  693.96 KB / 176 KB gzip main bundle (+38 KB for new modules).
+  Browser smoke RUN via claude-in-chrome MCP at http://localhost:4180/fitness_app/.
+
+  **Phase A — 5 S20 regressions fixed:**
+  - `src/ui/diary.js#unlogPlannedMeal` (L795-815) — splice-on-default-array
+    bug + name-match mismatch. Plan.js caller sometimes passes empty `meal.name`
+    while log-path falls back to capitalized mealType ⇒ name check never
+    matched. Dropped name check (slot already filtered by mealType,
+    idempotence in log-path guarantees ≤1 _sourcePlan entry per slot).
+  - `src/ui/modals/weightLog.js#openWeightLogModal` — added `class="modal"`
+    + `classList.add('active')` after appendChild. CSS `.modal.active` rule
+    at `src/styles/main.css:179` now applies.
+  - `src/ui/diary.js#openFoodSearch` (L716) + `src/ui/foodSearch.js#closeFoodSearch`
+    (L6) — switched from `style.display='block'` to `classList.add/remove('active')`.
+  - `src/ui/modals/profile-controller.js#openProfileEdit` (L192) — defensive
+    `mountProfile()` call if `#profileModal` not in DOM. Static import of
+    `mount` from profile.js at top of controller.
+  - `weeklyPlan.js` schema — verified at-rest by code-read; all shims wired
+    in main.js. S20 smoke msg was misleading (`return false` at L337 is by
+    design, prevents inline-onclick default propagation — modal DOES open).
+
+  **Phase B — head HTML cruft sweep (−46 LOC):**
+  - Deleted 4 modal stub `<div>`s from `index.html` L1311-1356 (recipeSwap /
+    breakfastSwap / snackSwap / lunchSwap), already shadowed by
+    `src/ui/modals/swap.js` ensureMounted templates.
+  - Added 4 defensive `window.close*SwapModal = () => closeById(...)` shims
+    in `src/main.js` (in case stale onclick still fires).
+
+  **Phase C — 6 critical-path lifts (~700 LOC new modules):**
+  - NEW `src/ui/modals/settings.js` — `openSettingsSheet` + `navigateFromSettingsSheet`.
+    Trimmed to v1.4.1 item set (Profile only); openProfileRows + openProfileFieldEdit
+    deep tail deferred (would need ~400 LOC inline-edit cluster).
+  - NEW `src/ui/modals/quickLog.js` — `openQuickLogSheet` + `quickLogFood` +
+    `openQuickAddCaloriesModal` + `selectQuickAddMeal` + `commitQuickAddCalories`.
+    Sub-action openers (AI photo / voice log / weight log / glass) routed via
+    `window.*` (defensive — boot-order independent).
+  - EXTENDED `src/ui/exercise.js` — added `initExerciseLog`, `switchExerciseTab`,
+    `changeExerciseDate`, exported `addCardioExercise` / `deleteCardioExercise` /
+    `addStrengthExercise` / `deleteStrengthExercise` / `updateCardioCalories`
+    (previously module-local).
+  - NEW `src/features/aiPhotoLog.js` — full downstream: `handleAIPhotoFile`,
+    `resizeImageForAI`, `callAIPhotoAnalysis`, `showAIPhotoReview`,
+    `updateAIPhotoTotals`, `confirmAIPhotoLog`, `showAIPhotoError`,
+    `escapeAIText`. Imports `AI_PHOTO_CONFIG` from `src/data/api-config.js`.
+    `window.aiPhotoSession` module-owned via `window.openAIPhotoLog` init.
+  - NEW `src/features/voiceLog.js` — `openVoiceLog` + `toggleVoiceListening`
+    + `submitVoiceTranscript` + `callVoiceAnalysis` (module-private) +
+    `showVoiceLogReview` + `selectVoiceMealSlot` + `toggleVoiceFoodSelection`
+    + `updateVoiceTotals` + `confirmVoiceLog` + `closeVoiceLog` + `showVoiceLogError`.
+    Module-private `voiceLogSession` + `voiceRecognition` (SpeechRecognition).
+  - NEW `src/pwa/install.js` — `setupInstallPrompt` + `installPWA` +
+    `isInstalledPWA` + `displayPWAStatus`. Called from bootstrap.
+
+  **main.js wiring:**
+  - +27 imports from 5 new modules + extended exercise.js.
+  - +44 `window.*` shims across all 6 lifts.
+  - Bootstrap now calls `initExerciseLog()` + `setupInstallPrompt()` after
+    `training.loadExerciseLog()`.
+
+  **Phase D — browser smoke (all green):**
+  | Check | Result |
+  |---|---|
+  | Boot globals (18 fns + state/profile/foodDiary/foodDatabase) | ✓ wired |
+  | Nav tab count | 5 |
+  | Console errors | 0 |
+  | A1 logPlannedMeal→1, unlogPlannedMeal→0 | ✓ FIXED |
+  | A2 openWeeklyPlanModal(1) modal visible (display:flex) | ✓ FIXED |
+  | A3 openWeightLogModal `.active` + display:flex | ✓ FIXED |
+  | A4 openFoodSearch `.active` + display:flex | ✓ FIXED |
+  | A5 openProfileEdit mounts + `.active` | ✓ FIXED |
+  | C1 openSettingsSheet (display:flex) | ✓ working |
+  | C2 openQuickLogSheet (display:flex) | ✓ working |
+  | C3 switchExerciseTab('cardio') cardio:block strength:none | ✓ working |
+  | C4 openAIPhotoLog('lunch') modal + handleAIPhotoFile=function | ✓ working |
+  | C5 openVoiceLog('dinner') modal + session created | ✓ working |
+  | C6 setupInstallPrompt wired (no install prompt in dev) | ✓ wired |
+
+  **What's left for S22:**
+  - Profile rows inline-edit cluster (openProfileRows / openProfileFieldEdit /
+    openBudgetEditModal — settings sheet currently routes Profile → full
+    assessment instead of rows view).
+  - Head `<header>` HTML extraction (top banner + gear button) + inline
+    CSS extraction to external CSS file → ~30 LOC index.html final target.
+  - Bottom-FAB stays in head for now; could move into shell.js.
+  - Long tail any remaining `typeof window.X === 'function'` no-op guards.
+
+- **Session 22** — **THIN SHELL HIT**. index.html 1,347 → **17 LOC** (−98.7%).
+  dist/index.html 28.63 KB → **0.98 KB** (gzip 7.55 → 0.45 KB).
+  Build green: main bundle 709.87 KB / 179.37 KB gzip (+16 KB net for
+  shell.js extensions + profileRows module).
+
+  **Phase 0 — restore corrupted working-copy.** Between commits the working
+  index.html was overwritten with 203 LOC of grep output (intentional but
+  destructive). `git checkout HEAD -- index.html` restored 1,347-LOC S21
+  state. Verify: `wc -l index.html`.
+
+  **Phase 1 — CSS parity check.** Confirmed `src/styles/main.css` (1,327
+  LOC) already mirrors both inline `<style>` blocks (L19-1301 main +
+  L1320-1344 nav). Selector counts: 180 vs 181 (main.css has one extra
+  comment header), both `@keyframes` present, nav rules at main.css L626 +
+  L642 + L1288. Already double-loaded since S6 — deletion is pure
+  redundancy strip.
+
+  **Phase 2 — `mountHeader` + `mountFab` added to `src/ui/shell.js`.**
+  - `mountHeader()`: creates `<div class="header">` with title +
+    subtitle + ⚙️ settings button, prepends before `#app` (or as
+    body firstChild fallback). Settings button uses
+    `window.openSettingsSheet && window.openSettingsSheet()` for safe
+    routing.
+  - `mountFab()`: creates `<button id="fab">` with full inline style
+    (position:fixed bottom-right, z-index 100, accent-gradient bg).
+    Click → `window.openQuickLogSheet()`.
+  - `src/main.js`: import line updated to
+    `import { mountShell, mountHeader, mountFab } from './ui/shell.js'`.
+    Top-level bootstrap calls run in order: `mountHeader()` →
+    `mountShell()` → `mountFab()`. `<script type="module">` is deferred
+    so `document.body` is parsed before module runs.
+
+  **Phase 3 — index.html collapse (1,347 → 17 LOC).** Stripped:
+  - L19-1301 inline `<style>` (main CSS, redundant with main.css)
+  - L1304-1310 `<header>` HTML (now in shell.js)
+  - L1311-1314 modal-stubs comment (already-deleted artifacts)
+  - L1315 `<button id="fab">` (now in shell.js)
+  - L1316-1319 FAB + nav comments
+  - L1320-1344 nav inline `<style>` (redundant with main.css)
+
+  Final structure: DOCTYPE + 7 meta tags + manifest link + title +
+  version meta + `<script type="module" src="/src/main.js">` +
+  `<div id="app"></div>` + closing tags. Title bumped from "v1.6.22
+  Week Plan Bridge Fix" → "v1.6.22". Version meta bumped to
+  `v1.6.22-thin-shell`.
+
+  **Phase 4 — browser smoke (all green).**
+
+  | Check | Result |
+  |---|---|
+  | Boot — globals (state/profile/foodDiary/foodDatabase/all shims) | ✓ wired |
+  | Boot — header rendered with title "Sorrel" + emerald gradient bg | ✓ |
+  | Boot — FAB rendered z-index 100 + accent gradient | ✓ |
+  | Boot — 5 nav tabs | ✓ |
+  | Boot — `<body>` children count: 13 (header + app inner + fab + modals) | ✓ |
+  | Console errors | 0 |
+  | ⚙️ click → settings sheet (display:flex) | ✓ |
+  | FAB click → quickLogSheet (display:flex) | ✓ |
+  | logPlannedMeal → unlogPlannedMeal (S21 regression stays fixed) | ✓ before=0/after=1/afterUnlog=0 |
+  | CSS — `.header` background-image: linear-gradient(135deg,#064e3b,#0a7d5a,...) | ✓ from main.css |
+  | CSS — `#fab` background-image: linear-gradient(135deg,#0a7d5a,#10b981,...) | ✓ |
+  | CSS — `#headerTitle` color: rgb(255,255,255) | ✓ |
+
+  **Phase 5 — profile rows inline-edit cluster.**
+  NEW `src/ui/modals/profileRows.js` (~270 LOC). Lifted from S19 monolith
+  L19520-19790 + L10897-10960:
+  - `openProfileRows()` — bottom-sheet with 8 rows (Name/Age/Gender/Height/
+    Weight + Goal/Activity/Budget) + "Re-take full assessment" footer
+    button.
+  - `openProfileFieldEdit(field)` — modal with field-specific input
+    (text/number/select/feet+inches). Config object drives 7 field types.
+  - `saveProfileField(field)` — validates, mutates profile, persists to
+    localStorage via `window.profile = X` assignment, reopens rows sheet.
+  - `openBudgetEditModal()` + `saveBudgetEdit()` — separate weekly-budget
+    modal (single input with $ prefix).
+
+  Wired in `src/main.js`: 5 new imports + 5 new `window.*` shims (Session
+  22 block). `src/ui/modals/settings.js#navigateFromSettingsSheet` Profile
+  route now prefers `window.openProfileRows` over `openProfileEdit`
+  (rows view is faster path for single-field edits; full assessment still
+  reachable via "Re-take" footer button).
+
+  **Phase 5 browser smoke:**
+
+  | Check | Result |
+  |---|---|
+  | openProfileRows / openProfileFieldEdit / saveProfileField / openBudgetEditModal / saveBudgetEdit shims | ✓ all function |
+  | `openProfileRows()` → sheet w/ 10 buttons | ✓ display:flex |
+  | `openProfileFieldEdit('weight')` → modal + `#pf-input` | ✓ exists |
+  | `openBudgetEditModal()` → modal + `#budget-edit-input` | ✓ exists |
+  | Settings Profile button onclick → `navigateFromSettingsSheet('profile','profile')` → openProfileRows | ✓ wired |
+  | Console errors | 0 |
+
+  **Files changed S22:**
+  - `index.html` — 1,347 → 17 LOC (Phase 0 restore + Phase 3 collapse)
+  - `src/ui/shell.js` — +mountHeader, +mountFab (~35 LOC)
+  - `src/main.js` — header/fab imports + bootstrap + profileRows imports + shims
+  - `src/ui/modals/settings.js` — navigateFromSettingsSheet route to rows
+  - NEW `src/ui/modals/profileRows.js` (~270 LOC)
+
+  **What's left for S23:**
+  - **Long-tail polish** — confirm all `typeof window.X === 'function'`
+    no-op guards in modules either route to live shims or get removed.
+  - **`<header>` style cleanup** — settings button has inline gradient
+    styles that could move into `.header button` CSS rule.
+  - **PWA install collision check** — `setupInstallPrompt` floating
+    button (S21) could overlap with FAB (z-index 1000 vs 100). Verify
+    in real install-prompt scenario.
+  - **AI photo + voice log live-fire smoke** — file picker + speech
+    recognition can't be tested via MCP automation. Manual smoke needed.
+  - **NEXT_SESSION.md trim** — handoff is now 800+ LOC. Could collapse
+    S1-S15 into a 1-paragraph historical summary; keep S16+ verbatim.
+
 - **Session 18** — Food search + recipe + weight log + swap cluster.
   24,840 → 24,071 (-769). New `src/ui/foodSearch.js` (9 fns: closeFoodSearch,
   searchFoods, renderSearchResults, selectFood, parseServing, servingRatio,
@@ -459,7 +660,19 @@ src/
                                             isAdaptiveUnlocked, saveTrialState, checkTrialExpiry
     routine.js                          ✓ getHydrationSchedule
     sunlight.js                         ✓ sunlightMap, logSunlight, renderHealthSunlightStable
+    aiPhotoLog.js                       ✓ S21: handleAIPhotoFile + resizeImageForAI +
+                                            callAIPhotoAnalysis + showAIPhotoReview +
+                                            updateAIPhotoTotals + confirmAIPhotoLog +
+                                            showAIPhotoError + escapeAIText
+    voiceLog.js                         ✓ S21: openVoiceLog + toggleVoiceListening +
+                                            submitVoiceTranscript + showVoiceLogReview +
+                                            selectVoiceMealSlot + toggleVoiceFoodSelection +
+                                            updateVoiceTotals + confirmVoiceLog + closeVoiceLog +
+                                            showVoiceLogError
     index.js                            ✓ barrel
+  pwa/
+    install.js                          ✓ S21: setupInstallPrompt + installPWA + isInstalledPWA +
+                                            displayPWAStatus
   state/
     appState.js  index.js  profile.js   ✓
     accessors.js                        ✓ appState/appProfile/saveAll/saveQuiet/saveProfileQuiet
@@ -467,11 +680,15 @@ src/
   ui/
     topbanner.js  premium.js routine.js ✓ slice 5
     analytics.js  progress.js           ✓ slice 5
-    exercise.js                         ✓ slice 5 + session 10: renderHealthRecovery
+    exercise.js                         ✓ slice 5 + session 10: renderHealthRecovery +
+                                            session 21: initExerciseLog, switchExerciseTab,
+                                            changeExerciseDate, updateCardioCalories +
+                                            exported addCardio/Strength + deleteCardio/Strength
     diary.js  shopping.js               ✓ slice 5
     plan.js                             ✓ slice 5 + session 12: getMealTimingGuide
     render.js                           ✓ slice 5 orchestrator + installSwitchTab
-    shell.js                            ✓ session 9: nav + all 8 tab skeletons (1,298 LOC)
+    shell.js                            ✓ session 9: nav + all 8 tab skeletons (1,298 LOC) +
+                                            session 22: mountHeader + mountFab
     helpers/
       toast.js                          ✓ showLogToast, showUndoToast, toast() alias
       banners.js                        ✓ updateBaselineBanner, updateTrialBanner,
@@ -491,8 +708,12 @@ src/
       paywall.js                        ✓ showPaywallModal factory
       weeklyPlan.js                     ✓ open/closeWeeklyPlanModal (V1622 reconciled)
       voiceLog.js                       ✓ renderVoiceLogModal
-      aiPhotoLog.js                     ✓ openAIPhotoLog entry only
+      aiPhotoLog.js                     ✓ openAIPhotoLog entry only (downstream in features/aiPhotoLog.js S21)
       profile.js                        ✓ 1021-line template + open/close
+      settings.js                       ✓ S21: openSettingsSheet + navigateFromSettingsSheet (S22 retargeted Profile → openProfileRows)
+      quickLog.js                       ✓ S21: openQuickLogSheet + quickLogFood + quickAddCalories cluster
+      profileRows.js                    ✓ S22: openProfileRows + openProfileFieldEdit + saveProfileField +
+                                            openBudgetEditModal + saveBudgetEdit (Apple Settings inline-edit pattern)
       index.js                          ✓ barrel + mountAll()
   utils/
     dates.js                            ✓ todayISO, toLocalISO, localDateKey, weekStart, plusDays
@@ -500,9 +721,11 @@ src/
     dom.js                              ✓ $, qa, byId
     format.js                           ✓ money
     time.js                             ✓ fmtTime/minutes24/timeToMinutes/toInputTime/parseDisplayTime
-  main.js                               ✓ imports CSS, wires window.Sorrel + ~55 window.* shims,
-                                            calls modals.mountAll() + installCustomRoutineHandlers()
-                                            + mountShell() + installSwitchTab() at bootstrap;
+  main.js                               ✓ imports CSS, wires window.Sorrel + ~105 window.* shims
+                                            (+44 S21, +5 S22 profileRows), calls modals.mountAll() +
+                                            installCustomRoutineHandlers() + mountHeader() +
+                                            mountShell() + mountFab() + installSwitchTab() +
+                                            initExerciseLog() + setupInstallPrompt() at bootstrap;
                                             SW registration via import.meta.env.BASE_URL + 'sw.js'
 ```
 
@@ -510,11 +733,22 @@ src/
 
 ## What's still in the monolith
 
-### index.html current state (session 20, uncommitted)
+### index.html current state (session 22, uncommitted)
 
-- **1,400 lines** (was 22,327 after S19, 40,265 original — net −38,865 / −96.5%)
-- Head HTML + small modal stubs only — NO `<script>` body remaining.
-- Module entry: `<script type="module" src="/src/main.js"></script>` at L14.
+- **17 lines** (was 1,347 after S21, 40,265 original — net −40,248 / −99.96%).
+- Pure thin shell: DOCTYPE + 7 meta + manifest + title + version + module
+  script + `<div id="app"></div>` + closing tags.
+- All header/FAB/styling now in modules.
+
+### Previous state (session 21)
+
+- 1,347 lines (post-S21 head sweep). Header + FAB + 2 inline `<style>`
+  blocks + comment placeholders. All collapsed in S22 Phase 3.
+
+### Previous state (session 20)
+
+- 1,400 lines (post-nuke). Modal stubs for recipeSwap/breakfastSwap/snackSwap/
+  lunchSwap still in head (46 LOC) — deleted in S21 Phase B.
 
 ### Previous state (session 19)
 
@@ -585,19 +819,35 @@ Shadowed by `window.*` shims (module overrides authoritative, monolith inert
 | `weeklyPlanModal` | src/ui/modals/weeklyPlan.js | ✓ Lifted + V1622 reconciled |
 | `swapModal` (day-level) | src/ui/modals/swap.js | ✓ Lifted + swapMeal/getAlternativeMeals/confirmSwap (S18) |
 | `voiceLogModal` | src/ui/modals/voiceLog.js | ✓ Lifted complete |
-| `aiPhotoLogModal` | src/ui/modals/aiPhotoLog.js | ✓ Entry only (downstream deferred) |
+| `aiPhotoLogModal` | src/ui/modals/aiPhotoLog.js + src/features/aiPhotoLog.js | ✓ Entry + full downstream (S21) |
 | `profileModal` | src/ui/modals/profile.js | ✓ Template + controller (S16) |
 | `quickStartModal` + `quickGoalModal` | src/ui/modals/quickStart.js | ✓ Dynamic factory (S17) |
-| `weightLogModal` | src/ui/modals/weightLog.js | ✓ Dynamic factory (S18) |
+| `weightLogModal` | src/ui/modals/weightLog.js | ✓ Dynamic factory (S18 + S21 .active fix) |
+| `settingsSheet` | src/ui/modals/settings.js | ✓ Dynamic factory (S21) — Profile route now → openProfileRows (S22) |
+| `quickLogSheet` | src/ui/modals/quickLog.js | ✓ Dynamic factory + quickAddCalories cluster (S21) |
+| `profileRowsSheet` + `profileFieldModal` | src/ui/modals/profileRows.js | ✓ Inline-edit pattern (S22) |
+| `budgetEditModal` | src/ui/modals/profileRows.js | ✓ Weekly budget edit (S22) |
 
-### Still deferred
+### Still deferred (post-S22)
 
-- **aiPhotoLog downstream** — `handleAIPhotoFile`, `resizeImageForAI`,
-  `callAIPhotoAnalysis`, `showAIPhotoReview`, `confirmAIPhotoLog`,
-  `escapeAIText`, `updateAIPhotoTotals`. Need to factor `aiPhotoSession`
-  + `AI_PHOTO_CONFIG` into module state.
-- ~~**profileModal inline `<script>`**~~ — done in S16, controller in
-  `src/ui/modals/profile-controller.js`.
+- ~~**aiPhotoLog downstream**~~ — DONE in S21.
+- ~~**voice log downstream**~~ — DONE in S21.
+- ~~**setupInstallPrompt / displayPWAStatus**~~ — DONE in S21.
+- ~~**openSettingsSheet / openQuickLogSheet**~~ — DONE in S21.
+- ~~**Exercise init cluster**~~ — DONE in S21.
+- ~~**Profile rows inline-edit**~~ — DONE in S22.
+- ~~**`<header>` HTML extraction + inline CSS extraction**~~ — DONE in S22.
+  Thin shell achieved (17 LOC).
+- ~~**profileModal inline `<script>`**~~ — done in S16.
+
+**Remaining tail (low-priority polish):**
+- AI photo + voice log live-fire smoke (can't automate file picker /
+  SpeechRecognition via MCP — manual smoke only).
+- PWA install button vs FAB z-index collision check.
+- Inline-style cleanup in shell.js mountHeader/mountFab (settings button
+  + FAB still use inline `style.cssText` — could move to CSS classes).
+- NEXT_SESSION.md trim (handoff is 900+ LOC — collapse S1-S15 to
+  one-paragraph historical summary).
 
 ---
 
@@ -607,30 +857,9 @@ Items 1–3 complete (sessions 11–12). Remaining: long tail only.
 
 ### Remaining distance to thin shell
 
-- **Now:** 24,071 LOC (post-S18, uncommitted)
-- **Target:** ~30 LOC (single `<div id="app"></div>` + `<script type="module">` + minimal head)
-- **Remaining:** ~24,041 LOC (long tail mostly small fns).
-
-Session 19 candidates (per refactor roadmap):
-- **Trial / paywall callers**: `subscribePro`, `dismissTopBanner`, `ensureTrialState` +
-  helpers → extend `src/features/trial.js` or new `src/ui/trial.js` (~500 LOC).
-- **Hydration rendering**: `renderHydrationSchedule`, `toggleHydration` → extend
-  `src/features/hydration.js`.
-- **Weight subsystem residue**: `getWeeklyWeightChange`, `computeRecoverySignal`,
-  `getCurrentWeekKey`, `computeWeeklyAdjustment`, `logWeight`, `getTrendWeight` —
-  confirm against modules; lift any not yet there.
-- **swapBreakfastForDay** + `closeBreakfastSwapModal` — deferred from S18 (deep
-  render deps: calculateWeeklyBudget, distributeRemainingMacros, renderMealPlanner,
-  renderBudgetTracker, renderBudgetOptimizationPanel).
-- **Already-shadowed monolith fns** (sweep #2): `renderFoodDiary`,
-  `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`, `renderDynamicShopping`,
-  `updateMainPagePlanner`, `generateShoppingList`, `analyzeStoreRecommendations`,
-  `parseIngredientString`. All have `window.*` shims pointing at modules — copies inert.
-- **Bulk delete phase**: ~16K LOC of remaining long tail. Grep `function ` defs,
-  cross-reference vs module exports, bulk-delete inert regions, fix forward.
-
-Rough scoping per roadmap: S19 final sweep → ~4.5K LOC shell, then 1-2 follow-up
-sessions strip remaining modal HTML + collapse head → ~30 LOC.
+- **Now:** **17 LOC index.html** (post-S22). **THIN SHELL HIT.**
+- **Original target:** ~30 LOC. Beat target by 13 LOC.
+- Final structure: DOCTYPE + meta + manifest + module script + `<div id="app"></div>`.
 
 ---
 
@@ -650,7 +879,10 @@ sessions strip remaining modal HTML + collapse head → ~30 LOC.
 | Session 17 (profile region finish) | ~990 KB | ~228 KB (assessment + quickStart modules added) |
 | Session 18 (foodSearch + recipe + weightLog + swap) | ~1,046 KB | ~242 KB (4 module surfaces extended/new) |
 | Session 19 (9-batch sweep) | ~876 KB | ~200 KB (main bundle 595 KB / 147 KB) |
-| Target (thin shell) | ~3 KB | — |
+| Session 20 (NUCLEAR — monolith JS body deleted) | 32 KB | 8 KB (main bundle 655 KB / 167 KB) |
+| Session 21 (A regressions + B head sweep + 6 C lifts) | 28.63 KB | 7.55 KB (main bundle 693.96 KB / 176.41 KB) |
+| Session 22 (CSS extract + header/FAB lift + profile rows) | **0.98 KB** | **0.45 KB** (main bundle 709.87 KB / 179.37 KB) — **THIN SHELL HIT** |
+| Original target (thin shell ~3 KB) | ✓ beat by 2 KB | — |
 
 ---
 

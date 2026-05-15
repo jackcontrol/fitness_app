@@ -1296,3 +1296,33 @@ export function mountShell() {
   const app = document.getElementById('app') || document.body;
   app.innerHTML = SHELL_HTML;
 }
+
+export function mountHeader() {
+  if (document.querySelector('.header')) return;
+  const header = document.createElement('div');
+  header.className = 'header';
+  header.style.position = 'relative';
+  header.innerHTML = `
+<h1 id="headerTitle">Sorrel</h1>
+<p id="headerSubtitle">Nutrition that adapts to you</p>
+<button aria-label="Settings"
+        onclick="window.openSettingsSheet && window.openSettingsSheet()"
+        style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.25);border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;padding:0;">⚙️</button>
+  `;
+  const app = document.getElementById('app');
+  if (app && app.parentNode) app.parentNode.insertBefore(header, app);
+  else document.body.insertBefore(header, document.body.firstChild);
+}
+
+export function mountFab() {
+  if (document.getElementById('fab')) return;
+  const fab = document.createElement('button');
+  fab.id = 'fab';
+  fab.title = 'Quick log';
+  fab.textContent = '+';
+  fab.style.cssText = 'position:fixed;right:20px;bottom:80px;width:56px;height:56px;border-radius:50%;background:var(--accent-gradient);color:white;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 14px rgba(10,125,90,0.4);z-index:100;display:flex;align-items:center;justify-content:center;font-weight:300;line-height:1;';
+  fab.addEventListener('click', () => {
+    if (typeof window.openQuickLogSheet === 'function') window.openQuickLogSheet();
+  });
+  document.body.appendChild(fab);
+}

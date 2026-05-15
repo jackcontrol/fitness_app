@@ -111,6 +111,10 @@ import {
 } from './ui/exercise.js';
 import { openSettingsSheet, navigateFromSettingsSheet } from './ui/modals/settings.js';
 import {
+  openProfileRows, openProfileFieldEdit, saveProfileField,
+  openBudgetEditModal, saveBudgetEdit,
+} from './ui/modals/profileRows.js';
+import {
   openQuickLogSheet, quickLogFood, openQuickAddCaloriesModal,
   selectQuickAddMeal, commitQuickAddCalories,
 } from './ui/modals/quickLog.js';
@@ -134,7 +138,7 @@ import {
 import { renderDynamicShopping } from './ui/shopping.js';
 import { renderProgressTab, renderPatternBadge } from './ui/progress.js';
 import { closeById } from './ui/modals/helpers.js';
-import { mountShell } from './ui/shell.js';
+import { mountShell, mountHeader, mountFab } from './ui/shell.js';
 import { installSwitchTab, switchTab } from './ui/render.js';
 import { appState, appProfile, saveAll, saveQuiet, saveProfileQuiet, loadAccessors } from './state/accessors.js';
 import { foodDatabase } from './data/foods.js';
@@ -522,6 +526,13 @@ window.runBudgetOptimization = runBudgetOptimization;
 // Session 21 — settings sheet + quick-log FAB shims.
 window.openSettingsSheet = openSettingsSheet;
 window.navigateFromSettingsSheet = navigateFromSettingsSheet;
+
+// Session 22 — profile rows inline-edit cluster.
+window.openProfileRows = openProfileRows;
+window.openProfileFieldEdit = openProfileFieldEdit;
+window.saveProfileField = saveProfileField;
+window.openBudgetEditModal = openBudgetEditModal;
+window.saveBudgetEdit = saveBudgetEdit;
 window.openQuickLogSheet = openQuickLogSheet;
 window.quickLogFood = quickLogFood;
 window.openQuickAddCaloriesModal = openQuickAddCaloriesModal;
@@ -572,8 +583,10 @@ window.renderVoiceLogModal = modals.voiceLog.renderVoiceLogModal;
 window.installPWA = installPWA;
 window.displayPWAStatus = displayPWAStatus;
 
-// Inject nav + section DOM before DOMContentLoaded fires.
+// Inject header + nav + section DOM + FAB before DOMContentLoaded fires.
+mountHeader();
 mountShell();
+mountFab();
 
 function bootstrap() {
   loadAccessors();  // sets window.state + window.profile from localStorage
