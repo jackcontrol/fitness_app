@@ -112,7 +112,11 @@ import { renderProgressTab, renderPatternBadge } from './ui/progress.js';
 import { closeById } from './ui/modals/helpers.js';
 import { mountShell } from './ui/shell.js';
 import { installSwitchTab, switchTab } from './ui/render.js';
-import { appState, appProfile, saveAll, saveQuiet, saveProfileQuiet } from './state/accessors.js';
+import { appState, appProfile, saveAll, saveQuiet, saveProfileQuiet, loadAccessors } from './state/accessors.js';
+import { foodDatabase } from './data/foods.js';
+import { deliveryProviders, storeInfo } from './data/providers.js';
+import { ELITE_PROTOCOL_DATABASE } from './data/protocols.js';
+import { calculateMealRotation, calculateWeeklyBudget, distributeRemainingMacros, runBudgetOptimization } from './ui/plan.js';
 import { getCurrentWeekKey, todayISO as _todayISO } from './utils/dates.js';
 import { toast } from './ui/helpers/toast.js';
 import { esc } from './utils/html.js';
@@ -470,23 +474,46 @@ window.todayISO = () => {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 };
 
-// Inject nav + section DOM before DOMContentLoaded fires so monolith
-// boot() callbacks find their target elements when they run.
+// Wire data bridges that monolith body previously hoisted as `const X = {...}`.
+// Modules read these via window.* across the codebase.
+window.foodDatabase = foodDatabase;
+window.safeLocalStorageSet = (key, value) => {
+  try { localStorage.setItem(key, value); return true; }
+  catch (e) { console.warn('safeLocalStorageSet failed:', key, e && e.message); return false; }
+};
+window.deliveryProviders = deliveryProviders;
+window.storeInfo = storeInfo;
+window.ELITE_PROTOCOL_DATABASE = ELITE_PROTOCOL_DATABASE;
+window.calculateMealRotation = calculateMealRotation;
+window.calculateWeeklyBudget = calculateWeeklyBudget;
+window.distributeRemainingMacros = distributeRemainingMacros;
+window.runBudgetOptimization = runBudgetOptimization;
+
+// Inject nav + section DOM before DOMContentLoaded fires.
 mountShell();
 
 function bootstrap() {
-  const profile = getProfile();
-  const state = loadState();
+  loadAccessors();  // sets window.state + window.profile from localStorage
 
-  // Hoist bridge globals for monolith code paths that read window.state / window.profile.
-  window.profile = profile;
-  window.state = state;
+  // Diary is the second canonical state store. Wire window.foodDiary so
+  // monolith-era modules (still reading window.foodDiary directly) see the
+  // live module-owned object.
+  diary.loadDiary();
+  window.foodDiary = diary.getDiary();
+
+  // Exercise log + trial state need explicit initialization since monolith
+  // boot used to do it.
+  try { training.loadExerciseLog(); } catch (e) {}
+  try { trial.ensureTrialState(); } catch (e) {}
 
   modals.mountAll();
   modals.weeklyPlan.mount();
   installCustomRoutineHandlers();
 
-  installSwitchTab();  // window.switchTab → lifted render.js router
+  // Show profile modal on first run; otherwise update header.
+  try { checkProfile(); } catch (e) { console.warn('checkProfile failed:', e); }
+
+  installSwitchTab();
   const tab = location.hash.replace('#', '') || 'plan';
   switchTab(tab);
 }

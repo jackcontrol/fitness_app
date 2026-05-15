@@ -259,6 +259,115 @@ Picks up where last session ended. Refactor plan canonical at
     `src/api/openFoodFacts.js` (the rest extend existing modules).
   - ~25 new window shims wired in `src/main.js`.
 
+- **Session 20** — **NUCLEAR**: monolith JS body deleted in one cut.
+  22,327 → 1,400 (−20,927 / −93.7%). dist/index.html: 875 KB → 32 KB.
+
+  Bridge pattern abandoned per user directive ("shit or get off pot — not a
+  production site"). Site no longer needs the two-copy bridge.
+
+  **What changed:**
+  - `index.html` L1399 (`<script>` open) through L22325 (`</script>` close)
+    deleted via `awk 'NR<1399 || NR>22325'`. 20,927 LOC gone in one shot.
+    All `function fooBar()` defs, ELITE_PROTOCOL_DATABASE const dup,
+    foodDatabase const dup, deliveryProviders const dup,
+    Object.defineProperty(window, 'state'/'profile') bridges — all in one
+    block, all gone.
+  - `src/main.js`: added imports for `foodDatabase`, `deliveryProviders`,
+    `storeInfo`, `ELITE_PROTOCOL_DATABASE`, and the 4 budget calc fns
+    (`calculateMealRotation` / `calculateWeeklyBudget` /
+    `distributeRemainingMacros` / `runBudgetOptimization` — already exported
+    by `src/ui/plan.js`, just never wired). Bootstrap now also calls
+    `loadAccessors()`, `diary.loadDiary()`, `training.loadExerciseLog()`,
+    `trial.ensureTrialState()`, `checkProfile()`. `window.foodDiary` wired
+    to module-owned diary object. `window.safeLocalStorageSet` shimmed
+    inline.
+  - `src/state/accessors.js`: simplified. `loadAccessors()` is the single
+    boot-time init that populates `window.state` / `window.profile` from
+    localStorage; `appState()` / `appProfile()` keep their window-reader
+    semantics so existing modules continue to work unchanged. Module-owned
+    reassignment pattern `window.profile = X` (used in assessment.js,
+    quickStart.js, weeklyPlan.js, checkProfile.js) preserved.
+
+  **Build state:**
+  - `pnpm.cmd run build` green. Bundle: index.html 32 KB / 8 KB gzip; main
+    bundle 655 KB / 167 KB gzip (unchanged — modules didn't shrink).
+  - `pnpm.cmd run preview` serves at http://localhost:4180/fitness_app/.
+
+  **Browser smoke RUN end-of-session via claude-in-chrome MCP.** Tab
+  http://localhost:4181/fitness_app/. Golden path → all green. Console: 0 app
+  errors (only MetaMask extension noise).
+
+  | Check | Result |
+  |---|---|
+  | Boot — window.state / .profile / .foodDiary / .foodDatabase / .ELITE_PROTOCOL_DATABASE | ✓ populated |
+  | Boot — 8 tab nav buttons | ✓ Plan/Diary/Train/Routine/Progress + 3 more |
+  | Boot — no profile: welcome screen | ✓ "Welcome to Sorrel · Get Started" |
+  | Profile modal — open + fillDemoData + saveProfile | ✓ weekPlan generated, localStorage written, modal closed |
+  | Plan tab post-profile | ✓ Today's meals (Eggs+Toast, Bibimbap, Greek Lentil) + macros |
+  | Shopping tab | ✓ 42 items, store optimization $68.67 saved (Aldi/Walmart/Costco) |
+  | logPlannedMeal('breakfast',0) | ✓ entry +1 in diary, 564/2144 cal, streak "Day 1 logged" |
+  | Train tab | ✓ Recovery card, 7-day recovery, HRV logging UI |
+  | Progress tab | ✓ 30-day retrospective, weekly review, weight trend |
+  | Routine tab | ✓ Sunlight tracking |
+  | Top banner (plan-top-banner) | ✓ 1061 chars rendered |
+  | Baseline banner | ✓ #baseline-banner present |
+  | Trial banner | ✓ #trial-banner present |
+
+  **Known regressions confirmed by smoke (defer to S21):**
+  - `unlogPlannedMeal('breakfast', 0)` — runs without error, but entry not
+    removed (before=1, after=1). Module behavior diverges from monolith. Fix:
+    inspect `src/ui/diary.js#unlogPlannedMeal`.
+  - `openWeeklyPlanModal(1)` returns false, toasts "Weekly plan could not be
+    repaired. Open Settings → Quick Setup to rebuild your plan." Despite
+    `window.profile.weekPlan` having all 7 days populated, the V1622
+    `weekPlan()` reader in `src/ui/modals/weeklyPlan.js:310` does not
+    recognize the schema. Fix: align reader with assessment.js output schema.
+  - `openWeightLogModal()` — modal element mounts but `.active` class never
+    added. Modal not visible. Fix: `src/ui/modals/weightLog.js#openWeightLogModal`.
+  - `openFoodSearch('breakfast')` — modal element mounts but `.active` not
+    added. Search results never populate. Fix: `src/ui/diary.js#openFoodSearch`
+    (or `src/ui/foodSearch.js`).
+  - `openProfileEdit()` — `#profileEditModal` element does NOT exist. Module
+    fn runs but produces no DOM. Fix: confirm template injection in
+    `src/ui/modals/profile-controller.js` or `profile.js#mount`.
+
+  **Known regressions (acceptable — not production, log + defer):**
+  - `onclick="openSettingsSheet()"` on top-right gear (head HTML L7-ish in
+    `<header>`) — monolith-only fn, click throws. Fix: lift settings sheet
+    or rewire.
+  - `onclick="openQuickLogSheet()"` on bottom-right FAB — same.
+  - `onclick="closeRecipeSwapModal()"` / `closeBreakfastSwapModal()` /
+    `closeSnackSwapModal()` / `closeLunchSwapModal()` inside legacy modal
+    stubs in head HTML (~10 onclick refs total) — only triggered when the
+    legacy modal is open, which now never happens because the openers are
+    gone. Dead code, defer to S21 cleanup of head HTML.
+  - Modal stubs `<div id="recipeSwapModal">` etc. still in head — never
+    shown post-nuke. Safe to delete in S21.
+  - AI photo log downstream (handleAIPhotoFile, callAIPhotoAnalysis,
+    showAIPhotoReview, etc.) — monolith only, never lifted. Entry modal
+    opens but flow breaks at file pick. Defer.
+  - Voice log downstream (toggleVoiceListening, showVoiceLogReview, etc.) —
+    same. Defer.
+  - Exercise tab: addCardioExercise / addStrengthExercise lifted, BUT
+    init paths (initExerciseLog, switchExerciseTab, renderCardioList,
+    renderStrengthList, calculateTotalCaloriesBurned, updateWeeklyStats,
+    setupInstallPrompt) all monolith-only. Exercise tab partially broken
+    until lifted. Defer.
+  - Cross-tab helpers monolith-only: changeDiaryDate (lifted), copyYesterdayMeal
+    (lifted), various small fns. Most have `typeof X === 'function'` guards
+    in modules so they silently no-op rather than throw.
+
+  **Next session (S21) priorities:**
+  1. Browser smoke + commit if golden path clean.
+  2. Sweep head HTML: delete legacy modal stubs `<div id="recipeSwapModal">`
+    / `breakfastSwapModal` / `snackSwapModal` / `lunchSwapModal` (~700 LOC
+    of HTML in head — already-shadowed by lifted modules).
+  3. Lift remaining critical-path fns: `openSettingsSheet`, FAB
+    (`openQuickLogSheet`), exercise tab init cluster.
+  4. Long tail: AI photo + voice log downstream, settings sub-pages,
+    `setupInstallPrompt`, `displayPWAStatus`, partner sharing.
+  5. Eventually delete head HTML modal cruft entirely → ~30 LOC target.
+
 - **Session 18** — Food search + recipe + weight log + swap cluster.
   24,840 → 24,071 (-769). New `src/ui/foodSearch.js` (9 fns: closeFoodSearch,
   searchFoods, renderSearchResults, selectFood, parseServing, servingRatio,
@@ -401,7 +510,13 @@ src/
 
 ## What's still in the monolith
 
-### index.html current state (session 19, uncommitted)
+### index.html current state (session 20, uncommitted)
+
+- **1,400 lines** (was 22,327 after S19, 40,265 original — net −38,865 / −96.5%)
+- Head HTML + small modal stubs only — NO `<script>` body remaining.
+- Module entry: `<script type="module" src="/src/main.js"></script>` at L14.
+
+### Previous state (session 19)
 
 - **22,327 lines** (was 24,071 after S18, 40,265 original — net −17,938 / −44.5%)
 - L1–~1280: head + CSS + manifest links

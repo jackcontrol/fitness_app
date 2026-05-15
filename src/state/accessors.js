@@ -1,59 +1,53 @@
-// Patch-IIFE closure wrappers consolidated.
-//
-// Inside the 19 patch IIFEs (V162-V1631), each re-declared local helpers
-// that pulled the live `state` / `profile` from window scope:
-//
-//   function appState(){ try { if (typeof state !== 'undefined') return state; } catch(e){} return null; }
-//   function appProfile(){ try { if (typeof profile !== 'undefined') return profile; } catch(e){} return null; }
-//   function saveAll(){
-//     try { if (typeof saveState === 'function') saveState(); } catch(e) {}
-//     try { const p = appProfile(); if (p) localStorage.setItem('user-profile', JSON.stringify(p)); } catch(e) {}
-//   }
-//
-// Consolidated here, reading window.state / window.profile (monolith
-// publishes them at L33171+). Behavior identical.
+// State + profile accessors. Post-nuke (S20): main.js bootstrap calls
+// loadAccessors() to populate window.state / window.profile from localStorage.
+// Modules read via appState() / appProfile() and reassign with
+// `window.profile = X` (legacy convention preserved).
 
-import { saveState as saveStateModule } from './appState.js';
-import { saveProfile as saveProfileModule } from './profile.js';
+import { loadState as loadStateLS, saveState as saveStateLS } from './appState.js';
+import { getProfile as getProfileLS, saveProfile as saveProfileLS } from './profile.js';
+
+export function loadAccessors() {
+  try {
+    if (!window.state) window.state = loadStateLS();
+    if (!window.profile) window.profile = getProfileLS();
+  } catch (e) {}
+  return { state: window.state, profile: window.profile };
+}
 
 export function appState() {
   try {
     if (window.state) return window.state;
   } catch (e) {}
-  return null;
+  const s = loadStateLS();
+  try { window.state = s; } catch (e) {}
+  return s;
 }
 
 export function appProfile() {
   try {
     if (window.profile) return window.profile;
   } catch (e) {}
-  return null;
+  const p = getProfileLS();
+  try { window.profile = p; } catch (e) {}
+  return p;
 }
 
 export function saveAll() {
   try {
-    if (typeof window.saveState === 'function') {
-      window.saveState();
-    } else {
-      const s = appState();
-      if (s) saveStateModule(s);
-    }
+    const s = window.state;
+    if (s) saveStateLS(s);
   } catch (e) {}
   try {
-    const p = appProfile();
-    if (p) saveProfileModule(p);
+    const p = window.profile;
+    if (p) saveProfileLS(p);
   } catch (e) {}
 }
 
-// Silent save without UI feedback. Used by patches that mutate state
-// inside an event handler where toast feedback would be redundant.
-export function saveQuiet() {
-  saveAll();
-}
+export const saveQuiet = saveAll;
 
 export function saveProfileQuiet() {
   try {
-    const p = appProfile();
-    if (p) saveProfileModule(p);
+    const p = window.profile;
+    if (p) saveProfileLS(p);
   } catch (e) {}
 }
