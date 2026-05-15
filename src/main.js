@@ -54,6 +54,18 @@ import {
   selectQuickGoalPace,
   saveQuickGoal,
 } from './ui/modals/quickStart.js';
+import {
+  closeFoodSearch,
+  searchFoods,
+  renderSearchResults,
+  selectFood,
+  parseServing,
+  servingRatio,
+  addFoodToMeal,
+  addFoodToMealDirect,
+  searchFoodsWithRemote,
+} from './ui/foodSearch.js';
+import { openWeightLogModal, saveWeightFromModal } from './ui/modals/weightLog.js';
 
 import { logSunlight, renderHealthSunlightStable, sunlightMap } from './features/sunlight.js';
 
@@ -84,7 +96,7 @@ import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
 import { getRecoveryLevel, getEffectiveMacrosForToday } from './features/training.js';
 import { renderHealthRecovery } from './ui/exercise.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
-import { renderPlanNextSteps, renderPlanWeightChip, getMealTimingGuide, updateMainPagePlanner } from './ui/plan.js';
+import { renderPlanNextSteps, renderPlanWeightChip, getMealTimingGuide, updateMainPagePlanner, viewRecipe, inferLunchInstructions } from './ui/plan.js';
 import {
   calculateDailyTotals, renderFoodDiary, renderMealFoods,
   updateMacroSummary, changeDiaryDate,
@@ -316,6 +328,26 @@ window.browseAnonymously = browseAnonymously;
 window.openQuickGoalModal = openQuickGoalModal;
 window.selectQuickGoalPace = selectQuickGoalPace;
 window.saveQuickGoal = saveQuickGoal;
+
+// Session 18 — food search subsystem.
+window.closeFoodSearch = closeFoodSearch;
+window.searchFoods = searchFoods;
+window.renderSearchResults = renderSearchResults;
+window.selectFood = selectFood;
+window.parseServing = parseServing;
+window.servingRatio = servingRatio;
+window.addFoodToMeal = addFoodToMeal;
+window.addFoodToMealDirect = addFoodToMealDirect;
+window.searchFoodsWithRemote = searchFoodsWithRemote;
+window.viewRecipe = viewRecipe;
+window.inferLunchInstructions = inferLunchInstructions;
+window.openWeightLogModal = openWeightLogModal;
+window.saveWeightFromModal = saveWeightFromModal;
+window.swapMeal = modals.swap.swapMeal;
+window.getAlternativeMeals = modals.swap.getAlternativeMeals;
+window.confirmSwap = modals.swap.confirmSwap;
+window.closeSwapModal = modals.swap.closeSwapModal;
+window.showSwapModal = modals.swap.showSwapModal;
 // saveState + todayISO needed by lifted quick-goal flow.
 // calculateMealMacros still in monolith — generateOptimalWeek reaches it via window.
 // calculateWeeklyIngredients + recipe DBs lifted from data modules, shimmed for assessment.js.

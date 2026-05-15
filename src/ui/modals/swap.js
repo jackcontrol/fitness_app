@@ -146,4 +146,131 @@ export function showSwapModal(day, mealType, alternatives) {
 export function closeSwapModal() {
   const el = document.getElementById('swapModal');
   if (el) el.remove();
+  currentSwapContext = null;
+}
+
+// ─── Session 18: swapMeal + getAlternativeMeals + confirmSwap ─────
+// Lifted from monolith. Module-private currentSwapContext (was a
+// monolith `let` reassigned across two fns; now lives here so the
+// trio can share state without bridging through window).
+
+let currentSwapContext = null;
+
+export function swapMeal(dayNumber, mealType, source) {
+  const profile = window.profile;
+  if (!profile || !profile.weekPlan) {
+    if (typeof window.showLogToast === 'function') window.showLogToast('No meal plan available');
+    else alert('No meal plan available');
+    return;
+  }
+  const day = profile.weekPlan.find(d => d.day == dayNumber) || profile.weekPlan[dayNumber - 1];
+  if (!day || !day[mealType]) {
+    if (typeof window.showLogToast === 'function') window.showLogToast('Day not found');
+    else alert('Day not found');
+    return;
+  }
+  const alternatives = getAlternativeMeals(mealType, profile.cuisinePreferences || []);
+  const current = (day[mealType] && day[mealType].meal) ? day[mealType].meal : {};
+  const currentKey = current.key || current.id || '';
+  const currentName = current.name || '';
+  const usable = alternatives.filter(m => m && (m.key !== currentKey) && ((m.name || '') !== currentName));
+  if (!usable.length) {
+    if (typeof window.showLogToast === 'function') window.showLogToast('No swap options available');
+    return;
+  }
+  currentSwapContext = {
+    dayNumber, mealType, day,
+    source: source || (document.getElementById('weeklyPlanModal') ? 'weekly' : 'home'),
+  };
+  showSwapModal(day, mealType, usable);
+}
+
+export function getAlternativeMeals(mealType, cuisinePreferences) {
+  const breakfastRecipes = window.breakfastRecipes || {};
+  const lunchRecipes = window.lunchRecipes || {};
+  const recipes = window.recipes || {};
+  const snackOptions = window.snackOptions || {};
+
+  let meals = [];
+  if (mealType === 'breakfast') {
+    meals = Object.entries(breakfastRecipes).map(([key, meal]) => ({ key, ...meal, type: 'breakfast' }));
+  } else if (mealType === 'lunch') {
+    meals = Object.entries(lunchRecipes).map(([key, meal]) => ({ key, ...meal, type: 'lunch' }));
+  } else if (mealType === 'dinner') {
+    meals = Object.entries(recipes)
+      .filter(([, meal]) => cuisinePreferences.includes(meal.cuisine))
+      .map(([key, meal]) => ({ key, ...meal, type: 'dinner' }));
+  } else if (mealType === 'snack') {
+    meals = Object.entries(snackOptions).map(([key, meal]) => ({ key, ...meal, type: 'snack' }));
+  }
+  return meals.slice(0, 10);
+}
+
+export function confirmSwap(newMealKey) {
+  if (!currentSwapContext) return;
+
+  const breakfastRecipes = window.breakfastRecipes || {};
+  const lunchRecipes = window.lunchRecipes || {};
+  const recipes = window.recipes || {};
+  const snackOptions = window.snackOptions || {};
+
+  const { dayNumber, mealType, day } = currentSwapContext;
+
+  let newMeal;
+  if (mealType === 'breakfast') newMeal = breakfastRecipes[newMealKey];
+  else if (mealType === 'lunch') newMeal = lunchRecipes[newMealKey];
+  else if (mealType === 'dinner') newMeal = recipes[newMealKey];
+  else if (mealType === 'snack') newMeal = snackOptions[newMealKey];
+
+  if (!newMeal) {
+    alert('Meal not found');
+    return;
+  }
+
+  day[mealType].meal = { key: newMealKey, ...newMeal };
+
+  if (mealType === 'snack') {
+    day[mealType].macros = {
+      protein: newMeal.protein,
+      carbs: newMeal.carbs,
+      fat: newMeal.fat,
+      calories: (newMeal.protein * 4) + (newMeal.carbs * 4) + (newMeal.fat * 9),
+    };
+    day[mealType].cost = newMeal.cost;
+  } else {
+    const calculateMealMacros = window.calculateMealMacros;
+    const estimateMealCost = window.estimateMealCost;
+    const newMealMacros = (typeof calculateMealMacros === 'function') ? calculateMealMacros(newMeal, mealType) : day[mealType].macros;
+    day[mealType].macros = newMealMacros;
+    day[mealType].cost = (typeof estimateMealCost === 'function') ? estimateMealCost(newMeal, mealType) : day[mealType].cost;
+  }
+
+  day.actualMacros = {
+    protein: day.breakfast.macros.protein + day.lunch.macros.protein + day.dinner.macros.protein + (day.snack.macros.protein || 0),
+    carbs: day.breakfast.macros.carbs + day.lunch.macros.carbs + day.dinner.macros.carbs + (day.snack.macros.carbs || 0),
+    fat: day.breakfast.macros.fat + day.lunch.macros.fat + day.dinner.macros.fat + (day.snack.macros.fat || 0),
+    calories: day.breakfast.macros.calories + day.lunch.macros.calories + day.dinner.macros.calories + (day.snack.macros.calories || 0),
+  };
+  day.totalCost = day.breakfast.cost + day.lunch.cost + day.dinner.cost + day.snack.cost;
+
+  const state = window.state;
+  if (state) state.dynamicShoppingList = null;
+  if (typeof window.saveState === 'function') window.saveState();
+
+  localStorage.setItem('user-profile', JSON.stringify(window.profile));
+
+  const source = (currentSwapContext && currentSwapContext.source) || 'weekly';
+  closeSwapModal();
+
+  if (typeof window.updateMainPagePlanner === 'function') window.updateMainPagePlanner();
+
+  if (source === 'weekly') {
+    if (typeof window.closeWeeklyPlanModal === 'function') window.closeWeeklyPlanModal();
+    setTimeout(() => {
+      if (typeof window.openWeeklyPlanModal === 'function') window.openWeeklyPlanModal(dayNumber);
+    }, 100);
+  } else if (typeof window.showLogToast === 'function') {
+    const newName = (newMeal && newMeal.name) || 'meal';
+    window.showLogToast('Swapped to ' + newName);
+  }
 }

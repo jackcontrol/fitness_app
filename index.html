@@ -7784,33 +7784,13 @@ function formatDiaryDate(dateStr) {
 }
 
 // Close food search modal
-function closeFoodSearch() {
-  document.getElementById('foodSearchModal').style.display = 'none';
-  document.getElementById('quick-add-section').style.display = 'none';
-}
 
 // Search foods
-function searchFoods() {
-  const query = document.getElementById('food-search-input').value.toLowerCase().trim();
-  
-  if (query.length === 0) {
-    showAllFoods();
-    return;
-  }
-  
-  const results = Object.entries(foodDatabase).filter(([key, food]) => {
-    const name = (food.name || '').toLowerCase();
-    const category = (food.category || '').toLowerCase();
-    return name.includes(query) || category.includes(query);
-  });
-  
-  renderSearchResults(results);
-}
 
 // Show all foods
 function showAllFoods() {
   const results = Object.entries(foodDatabase);
-  renderSearchResults(results);
+  window.renderSearchResults(results);
   
   // Update tab styling
   setActiveTab('tab-all');
@@ -7831,7 +7811,7 @@ function showRecentFoodsInSearch() {
     const results = foodDiary.recentFoods
       .map(foodId => [foodId, foodDatabase[foodId]])
       .filter(([key, food]) => food);  // Filter out any that don't exist
-    renderSearchResults(results);
+    window.renderSearchResults(results);
   }
   
   setActiveTab('tab-recent');
@@ -7852,7 +7832,7 @@ function showFavoriteFoodsInSearch() {
     const results = foodDiary.favoriteFoods
       .map(foodId => [foodId, foodDatabase[foodId]])
       .filter(([key, food]) => food);
-    renderSearchResults(results);
+    window.renderSearchResults(results);
   }
   
   setActiveTab('tab-favorites');
@@ -8211,58 +8191,6 @@ function offSearchByTextDebounced(query) {
 //
 // Usage example (replace existing onkeyup="searchFoods()"):
 //   <input ... onkeyup="searchFoodsWithRemote()">
-async function searchFoodsWithRemote() {
-  // First render local results immediately (instant feedback)
-  if (typeof searchFoods === 'function') searchFoods();
-  
-  const input = document.getElementById('food-search-input');
-  if (!input) return;
-  const query = input.value.toLowerCase().trim();
-  if (query.length < 3) return; // don't hit API for very short queries
-  
-  // Show a subtle "searching online…" indicator
-  const resultsContainer = document.getElementById('search-results') || 
-                           document.getElementById('all-foods-list');
-  if (resultsContainer && !document.getElementById('off-loading')) {
-    const loader = document.createElement('div');
-    loader.id = 'off-loading';
-    loader.style.cssText = 'padding: 12px 16px; text-align: center; color: #94a0ad; font-size: 13px;';
-    loader.textContent = '🌐 Searching online database…';
-    resultsContainer.appendChild(loader);
-  }
-  
-  let remoteResults;
-  try {
-    remoteResults = await offSearchByTextDebounced(query);
-  } catch (e) {
-    // Either the debounce was superseded or a real error. Either way, just bail.
-    const loader = document.getElementById('off-loading');
-    if (loader) loader.remove();
-    return;
-  }
-  
-  // Remove the loading indicator
-  const loader = document.getElementById('off-loading');
-  if (loader) loader.remove();
-  
-  // If the input has changed since we kicked off this search, abort
-  if (input.value.toLowerCase().trim() !== query) return;
-  
-  // Inject remote results into the foodDatabase so existing UI just works.
-  // Mark them with source: 'openfoodfacts' so we could style them differently if desired.
-  let added = 0;
-  for (const item of remoteResults) {
-    if (!foodDatabase[item.id]) {
-      foodDatabase[item.id] = item;
-      added++;
-    }
-  }
-  
-  // Re-render the search UI to include the new entries
-  if (added > 0 && typeof searchFoods === 'function') {
-    searchFoods();
-  }
-}
 
 // ─── Integration helper: log a food via barcode ────────────────────────────
 // Call this from a barcode scanner button. Looks up the barcode in OFF, then
@@ -8288,8 +8216,8 @@ async function logFoodByBarcode(barcode, mealName) {
   if (typeof foodDiary !== 'undefined') {
     foodDiary.currentMeal = mealName || foodDiary.currentMeal || 'snacks';
   }
-  if (typeof selectFood === 'function') {
-    selectFood(product.id);
+  if (typeof window.selectFood === 'function') {
+    window.selectFood(product.id);
   }
   return true;
 }
@@ -8710,8 +8638,8 @@ function confirmAIPhotoLog() {
     // Pass the multiplier as `quantity` so addFoodToMealDirect handles scaling
     // through its existing servingRatio path (which short-circuits to 1.0
     // when serving === baseServing, leaving quantity as the only multiplier).
-    if (typeof addFoodToMealDirect === 'function') {
-      addFoodToMealDirect(mealId, id, 0, m);
+    if (typeof window.addFoodToMealDirect === 'function') {
+      window.addFoodToMealDirect(mealId, id, 0, m);
       savedCount++;
     }
   });
@@ -9129,8 +9057,8 @@ function confirmVoiceLog() {
         fat: food.fat * food.multiplier
       };
     }
-    if (typeof addFoodToMealDirect === 'function') {
-      addFoodToMealDirect(slot, id, 0, 1);
+    if (typeof window.addFoodToMealDirect === 'function') {
+      window.addFoodToMealDirect(slot, id, 0, 1);
     }
   });
   
@@ -9178,6 +9106,13 @@ function showVoiceLogError(message) {
 // When active, tapping a food toggles selection instead of opening detail.
 // Default 1 serving × baseServing. User can save N foods in N+2 taps.
 let multiAddState = { active: false, selected: [] };
+// S18 bridge: foodSearch module reads multiAddState.active/selected via window.
+// Object.defineProperty so reassignment (toggleMultiAddMode reset) propagates.
+Object.defineProperty(window, 'multiAddState', {
+  get: () => multiAddState,
+  set: (v) => { multiAddState = v; },
+  configurable: true,
+});
 
 function toggleMultiAddMode() {
   multiAddState.active = !multiAddState.active;
@@ -9275,7 +9210,7 @@ function commitMultiAdd() {
   const count = multiAddState.selected.length;
   multiAddState = { active: false, selected: [] };
   
-  closeFoodSearch();
+  window.closeFoodSearch();
   refreshAfterFoodLog();
   
   // Brief confirmation toast
@@ -9349,7 +9284,7 @@ function copyYesterdayMeal() {
   });
   
   saveFoodDiary();
-  closeFoodSearch();
+  window.closeFoodSearch();
   refreshAfterFoodLog();
   showLogToast(`Copied ${entries.length} item${entries.length === 1 ? '' : 's'} from yesterday`);
 }
@@ -9495,99 +9430,8 @@ function refreshAfterFoodLog() {
   }
 }
 
-function renderSearchResults(results) {
-  const container = document.getElementById('food-search-results');
-  
-  if (results.length === 0) {
-    container.innerHTML = `
-      <div style="padding: 40px 20px; text-align: center; color: #94a0ad;">
-        <div style="font-size: 48px; margin-bottom: 12px;">🔍</div>
-        <div>No foods found</div>
-        <div style="font-size: 13px; margin-top: 8px;">Try a different search term</div>
-      </div>
-    `;
-    return;
-  }
-  
-  let html = '';
-  results.forEach(([foodId, food]) => {
-    const isFavorite = foodDiary.favoriteFoods.includes(foodId);
-    const isSelected = multiAddState.active && multiAddState.selected.includes(foodId);
-    const onClick = multiAddState.active 
-      ? `toggleMultiAddItem('${foodId}')` 
-      : `selectFood('${foodId}')`;
-    
-    html += `
-      <div id="food-row-${foodId}" onclick="${onClick}" 
-           style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; border-left: ${isSelected ? '4px solid #0a7d5a' : '4px solid transparent'}; background: ${isSelected ? '#e8f0ff' : 'white'}; cursor: pointer; transition: background 0.15s, border-left 0.15s;"
-           onmouseover="if(!${isSelected}) this.style.background='#f8f9fa'" onmouseout="if(!${isSelected}) this.style.background='white'">
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 14px; color: #1a2332; margin-bottom: 4px;">
-              ${isFavorite ? '⭐ ' : ''}${food.name || foodId}
-            </div>
-            <div style="font-size: 12px; color: #5a6573;">
-              ${food.baseServing || '1 serving'}: ${food.calories || 0} cal | ${food.protein || 0}p ${food.carbs || 0}c ${food.fat || 0}f
-            </div>
-            ${food.category ? `<div style="font-size: 11px; color: #94a0ad; margin-top: 2px;">${food.category}</div>` : ''}
-          </div>
-          ${multiAddState.active ? `
-            <div class="multi-add-check" style="width:28px;height:28px;border-radius:50%;background:${isSelected ? '#0a7d5a' : 'white'};border:2px solid ${isSelected ? '#0a7d5a' : '#ddd'};color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">${isSelected ? '✓' : ''}</div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-  });
-  
-  container.innerHTML = html;
-}
 
 // Select food for detail view
-function selectFood(foodId) {
-  const food = foodDatabase[foodId];
-  if (!food) return;
-  
-  foodDiary.currentFood = { id: foodId, ...food };
-  
-  // Close search modal
-  closeFoodSearch();
-  
-  // Open detail modal
-  document.getElementById('food-detail-name').textContent = food.name;
-  document.getElementById('food-detail-meal-name').textContent = 
-    foodDiary.currentMeal.charAt(0).toUpperCase() + foodDiary.currentMeal.slice(1);
-  
-  // Populate serving size dropdown
-  // 77% of foodDatabase entries lack a `servings` array. Provide a sensible
-  // fallback so tapping ANY food works, not just the curated 121 entries.
-  const servingSelector = document.getElementById('serving-size-selector');
-  servingSelector.innerHTML = '';
-  const servings = (Array.isArray(food.servings) && food.servings.length > 0) 
-    ? food.servings 
-    : [food.baseServing || '1 serving'];
-  servings.forEach((serving, index) => {
-    const option = document.createElement('option');
-    option.value = index;
-    option.textContent = serving;
-    if (serving === food.baseServing) {
-      option.selected = true;
-    }
-    servingSelector.appendChild(option);
-  });
-  
-  // Reset quantity
-  document.getElementById('num-servings').value = 1;
-  
-  // Update favorite button
-  const isFavorite = foodDiary.favoriteFoods.includes(foodId);
-  document.getElementById('favorite-btn').textContent = isFavorite ? '★' : '⭐';
-  
-  // Update nutrition display
-  updateFoodDetailNutrition();
-  
-  // Show modal
-  document.getElementById('foodDetailModal').style.display = 'block';
-}
 
 // Update food detail nutrition based on serving and quantity
 function updateFoodDetailNutrition() {
@@ -9614,154 +9458,11 @@ function closeFoodDetail() {
   foodDiary.currentFood = null;
 }
 
-// Add food to meal
-// Parse a serving-size string into a numeric quantity in some unit.
-// Returns { num, unit } or null if unparseable.
-// Handles: "4 oz", "1 cup", "1/2 cup", "1 1/2 cups", "2 eggs", "1 slice", "1 scoop"
-function parseServing(s) {
-  if (typeof s !== 'string') return null;
-  const trimmed = s.trim().toLowerCase();
-  
-  // Match leading number(s) — could be "1", "1.5", "1/2", "1 1/2"
-  const m = trimmed.match(/^(\d+(?:\s+\d+\/\d+|\.\d+|\/\d+)?)\s*([a-z]*)/);
-  if (!m) return null;
-  
-  const numStr = m[1];
-  let num;
-  if (numStr.includes(' ')) {
-    // Mixed fraction: "1 1/2"
-    const [whole, frac] = numStr.split(/\s+/);
-    const [n, d] = frac.split('/').map(Number);
-    num = parseInt(whole) + (n / d);
-  } else if (numStr.includes('/')) {
-    // Pure fraction: "1/2"
-    const [n, d] = numStr.split('/').map(Number);
-    num = n / d;
-  } else {
-    num = parseFloat(numStr);
-  }
-  
-  if (isNaN(num) || num <= 0) return null;
-  
-  // Normalize unit aliases
-  let unit = (m[2] || '').replace(/s$/, ''); // strip plural
-  const aliases = { tbl: 'tbsp', tablespoon: 'tbsp', teaspoon: 'tsp', oz: 'oz', cup: 'cup', g: 'g', gram: 'g', ml: 'ml' };
-  if (aliases[unit]) unit = aliases[unit];
-  
-  return { num, unit };
-}
 
-// Compute multiplier from base serving to a selected serving.
-// e.g. base "4 oz", selected "8 oz" → 2.0
-// Returns 1.0 if either string can't be parsed (safe fallback) or units don't match.
-function servingRatio(selectedServing, baseServing) {
-  if (selectedServing === baseServing) return 1.0;
-  const sel = parseServing(selectedServing);
-  const base = parseServing(baseServing);
-  if (!sel || !base) return 1.0;
-  if (sel.unit !== base.unit) return 1.0;  // Don't cross-convert oz↔cup
-  return sel.num / base.num;
-}
-
-function addFoodToMeal() {
-  const food = foodDiary.currentFood;
-  if (!food) return;
-  
-  const servingIndex = parseInt(document.getElementById('serving-size-selector').value);
-  const quantity = parseFloat(document.getElementById('num-servings').value) || 1;
-  // Defensive: many foodDatabase entries lack a servings array. Fall back to baseServing.
-  const servings = (Array.isArray(food.servings) && food.servings.length > 0) 
-    ? food.servings 
-    : [food.baseServing || '1 serving'];
-  const serving = servings[servingIndex] || servings[0];
-  
-  // Compute multiplier from base serving to the selected serving so picking
-  // "8 oz" of a food whose base is "4 oz" doubles the macros (was a real bug).
-  const ratio = servingRatio(serving, food.baseServing);
-  const totalMultiplier = ratio * quantity;
-  
-  const entry = {
-    foodId: food.id,
-    name: food.name,
-    serving: serving,
-    quantity: quantity,
-    calories: Math.round((food.calories || 0) * totalMultiplier),
-    protein: Math.round((food.protein || 0) * totalMultiplier),
-    carbs: Math.round((food.carbs || 0) * totalMultiplier),
-    fat: Math.round((food.fat || 0) * totalMultiplier)
-  };
-  
-  // Add to meal
-  ensureDateEntry(foodDiary.currentDate);
-  foodDiary.entries[foodDiary.currentDate][foodDiary.currentMeal].push(entry);
-  
-  // Add to recent foods (max 20)
-  addToRecent(food.id);
-  
-  // Save and refresh
-  saveFoodDiary();
-  refreshAfterFoodLog();
-  closeFoodDetail();
-}
 
 /**
  * Add food to meal programmatically (for barcode scanner and image recognition)
  */
-function addFoodToMealDirect(mealId, foodId, servingIndex, quantity) {
-  if (!foodDatabase[foodId]) {
-    console.error('Food not found:', foodId);
-    return false;
-  }
-  
-  const food = foodDatabase[foodId];
-  // Defensive: many foodDatabase entries lack a servings array. Fall back to baseServing.
-  const servings = (Array.isArray(food.servings) && food.servings.length > 0) 
-    ? food.servings 
-    : (food.baseServing ? [food.baseServing] : null);
-  if (!servings) {
-    console.error('No serving data for food:', foodId);
-    return false;
-  }
-  const serving = servings[servingIndex] || servings[0];
-  
-  // Apply serving-size multiplier (same logic as manual diary entry)
-  const ratio = (typeof servingRatio === 'function')
-    ? servingRatio(serving, food.baseServing)
-    : 1.0;
-  const totalMultiplier = ratio * quantity;
-  
-  const entry = {
-    foodId: foodId,
-    name: food.name,
-    serving: serving,
-    quantity: quantity,
-    calories: Math.round((food.calories || 0) * totalMultiplier),
-    protein: Math.round((food.protein || 0) * totalMultiplier),
-    carbs: Math.round((food.carbs || 0) * totalMultiplier),
-    fat: Math.round((food.fat || 0) * totalMultiplier)
-  };
-  
-  // Add to current meal
-  ensureDateEntry(foodDiary.currentDate);
-  
-  // Map meal IDs (m0 = breakfast, m1 = lunch, m2 = dinner, m3 = snacks)
-  // Note: schema uses 'snacks' (plural) — calculateDailyTotals only counts that key.
-  let mealKey = 'breakfast';
-  if (mealId === 'm1') mealKey = 'lunch';
-  else if (mealId === 'm2') mealKey = 'dinner';
-  else if (mealId === 'm3') mealKey = 'snacks';
-  
-  foodDiary.entries[foodDiary.currentDate][mealKey].push(entry);
-  
-  // Add to recent foods
-  addToRecent(foodId);
-  
-  // Save and refresh
-  saveFoodDiary();
-  refreshAfterFoodLog();
-  
-  return true;
-}
 
 // Add food to recent list
 function addToRecent(foodId) {
@@ -9856,7 +9557,7 @@ function addQuickCalories() {
   
   saveFoodDiary();
   refreshAfterFoodLog();
-  closeFoodSearch();
+  window.closeFoodSearch();
 }
 
 // Copy yesterday's meals
@@ -12452,79 +12153,6 @@ function maybeRecalibrate() {
   
   console.log('🎯 Macros recalibrated:', adjustment);
   return adjustment;
-}
-
-// ─── UI: Weight Log Modal ──────────────────────────────────────────
-function openWeightLogModal() {
-  ensureAdaptiveState();
-  const currentWeight = profile ? profile.weight : '';
-  const trendWeight = getTrendWeight();
-  const weeklyChange = getWeeklyWeightChange();
-  const recentEntries = state.weightLog.slice(-7).reverse();
-  
-  const modal = document.createElement('div');
-  modal.id = 'weightLogModal';
-  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  modal.innerHTML = `
-    <div style="background:white;border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <h2 style="margin:0;font-size:22px;">⚖️ Log Weight</h2>
-        <button onclick="document.getElementById('weightLogModal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a0ad;padding:8px 12px;min-width:44px;min-height:44px;line-height:1;">✕</button>
-      </div>
-      
-      <div style="background:var(--accent-gradient);color:white;padding:16px;border-radius:12px;margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div>
-            <div style="font-size:12px;opacity:0.9;">Trend weight</div>
-            <div style="font-size:28px;font-weight:700;">${trendWeight ? trendWeight + ' lb' : '—'}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:12px;opacity:0.9;">This week</div>
-            <div style="font-size:20px;font-weight:600;">${weeklyChange === 0 ? '—' : (weeklyChange > 0 ? '+' : '') + weeklyChange + ' lb'}</div>
-          </div>
-        </div>
-      </div>
-      
-      <label style="display:block;margin-bottom:8px;font-weight:600;font-size:14px;color:#1a2332;">Today's weight (lb)</label>
-      <div style="display:flex;gap:8px;margin-bottom:20px;">
-        <input id="weightInput" type="number" step="0.1" placeholder="${currentWeight || '180.0'}" 
-               style="flex:1;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;">
-        <button onclick="saveWeightFromModal()" 
-                style="padding:12px 20px;background:#0a7d5a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-          Save
-        </button>
-      </div>
-      
-      ${recentEntries.length > 0 ? `
-        <div style="margin-top:20px;">
-          <div style="font-size:13px;color:#5a6573;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:10px;">Recent entries</div>
-          ${recentEntries.map(e => `
-            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0;">
-              <span style="color:#5a6573;font-size:14px;">${e.date}</span>
-              <span style="font-weight:600;">${e.weight} lb</span>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-    </div>
-  `;
-  document.body.appendChild(modal);
-}
-
-function saveWeightFromModal() {
-  const input = document.getElementById('weightInput');
-  if (!input || !input.value) return;
-  const w = parseFloat(input.value);
-  if (isNaN(w) || w < 50 || w > 700) {
-    if (typeof showLogToast === 'function') showLogToast('Weight must be 50-700 lb'); else alert('Weight must be 50-700 lb');
-    return;
-  }
-  logWeight(w);
-  const modal = document.getElementById('weightLogModal');
-  if (modal) modal.remove();
-  
-  // Refresh home page to show updated trend/projection
-  if (typeof updateMainPagePlanner === 'function') updateMainPagePlanner();
 }
 
 
@@ -23346,7 +22974,7 @@ async function lookupBarcode(barcode) {
       // Auto-add to current meal after 2 seconds
       setTimeout(() => {
         closeBarcodeScanner();
-        addFoodToMealDirect(currentScanMeal, foodId, 0, 1);
+        window.addFoodToMealDirect(currentScanMeal, foodId, 0, 1);
         alert(`✅ ${nutrition.name} added to your meal!`);
       }, 2000);
       
@@ -23681,7 +23309,7 @@ function addRecognizedFood(foodName, calories, protein, carbs, fat) {
   
   // Add to current meal
   closeImageRecognition();
-  addFoodToMealDirect(currentScanMeal, foodId, 0, 1);
+  window.addFoodToMealDirect(currentScanMeal, foodId, 0, 1);
   
   alert(`✅ ${foodName} added!\n\n⚠️ Nutrition values are estimates. Adjust serving size as needed.`);
 }
@@ -24004,7 +23632,6 @@ function toggleModalDay(dayNumber) {
  * MEAL SWAPPING SYSTEM
  */
 
-let currentSwapContext = null;
 let expandedDay = null; // Track which day is expanded
 
 /**
@@ -24068,225 +23695,10 @@ function toggleDay(dayNumber) {
 }
 
 
-function swapMeal(dayNumber, mealType, source) {
-  // v1.6.2: direct, selectable swap sheet. This restores user choice without
-  // turning Swap into a blind one-option cycle.
-  if (!profile || !profile.weekPlan) {
-    if (typeof showLogToast === 'function') showLogToast('No meal plan available'); else alert('No meal plan available');
-    return;
-  }
-  const day = profile.weekPlan.find(d => d.day == dayNumber) || profile.weekPlan[dayNumber - 1];
-  if (!day || !day[mealType]) {
-    if (typeof showLogToast === 'function') showLogToast('Day not found'); else alert('Day not found');
-    return;
-  }
-  const alternatives = getAlternativeMeals(mealType, profile.cuisinePreferences || []);
-  const current = day[mealType] && day[mealType].meal ? day[mealType].meal : {};
-  const currentKey = current.key || current.id || '';
-  const currentName = current.name || '';
-  const usable = alternatives.filter(m => m && (m.key !== currentKey) && ((m.name || '') !== currentName));
-  if (!usable.length) {
-    if (typeof showLogToast === 'function') showLogToast('No swap options available');
-    return;
-  }
-  currentSwapContext = { dayNumber, mealType, day, source: source || (document.getElementById('weeklyPlanModal') ? 'weekly' : 'home') };
-  showSwapModal(day, mealType, usable);
-}
 
-function getAlternativeMeals(mealType, cuisinePreferences) {
-  let meals = [];
-  
-  if (mealType === 'breakfast') {
-    meals = Object.entries(breakfastRecipes).map(([key, meal]) => ({
-      key, ...meal, type: 'breakfast'
-    }));
-  } else if (mealType === 'lunch') {
-    meals = Object.entries(lunchRecipes).map(([key, meal]) => ({
-      key, ...meal, type: 'lunch'
-    }));
-  } else if (mealType === 'dinner') {
-    meals = Object.entries(recipes)
-      .filter(([key, meal]) => cuisinePreferences.includes(meal.cuisine))
-      .map(([key, meal]) => ({
-        key, ...meal, type: 'dinner'
-      }));
-  } else if (mealType === 'snack') {
-    meals = Object.entries(snackOptions).map(([key, meal]) => ({
-      key, ...meal, type: 'snack'
-    }));
-  }
-  
-  // Limit to 10 alternatives for UI
-  return meals.slice(0, 10);
-}
 
-function showSwapModal(day, mealType, alternatives) {
-  const currentMeal = day[mealType];
-  const mealLabel = mealType.charAt(0).toUpperCase() + mealType.slice(1);
-  
-  const modalHTML = `
-    <div id="swapModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-      <div style="background: var(--bg-card); border-radius: 16px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-elevated);">
-        <div style="display: flex; align-items: center; gap: 10px; margin: 0 0 18px 0;">
-          <div style="width: 18px; height: 3px; background: var(--accent-primary); border-radius: 2px; position: relative;">
-            <div style="position: absolute; right: -3px; top: -2px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-primary);"></div>
-          </div>
-          <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;">Swap ${mealLabel}</h3>
-        </div>
-        
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 14px; border-radius: 10px; margin-bottom: 18px;">
-          <div style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 4px;">Current</div>
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${currentMeal.meal.name || currentMeal.meal.key}</div>
-          <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px; font-variant-numeric: tabular-nums;">
-            ${currentMeal.macros.protein}p · ${currentMeal.macros.carbs}c · ${currentMeal.macros.fat}f · $${currentMeal.cost.toFixed(2)}
-          </div>
-        </div>
-        
-        <div style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 10px;">Choose alternative</div>
-        <div id="alternativesList">
-          ${alternatives.map(meal => `
-            <div class="alternative-meal" onclick="confirmSwap('${meal.key}')" style="padding: 14px; margin-bottom: 8px; background: var(--bg-card); border-radius: 10px; cursor: pointer; border: 1px solid var(--border-subtle); transition: border-color 0.15s ease, background-color 0.15s ease;">
-              <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">${meal.name || meal.key}</div>
-              ${meal.description ? `
-                <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">
-                  ${meal.emoji || ''} ${meal.description}
-                </div>
-              ` : ''}
-              ${meal.protein !== undefined ? `
-                <div style="color: var(--text-secondary); font-size: 13px; margin-top: 6px; font-variant-numeric: tabular-nums;">
-                  ${meal.protein}p · ${meal.carbs}c · ${meal.fat}f${meal.cost ? ` · $${meal.cost.toFixed(2)}` : ''}
-                </div>
-              ` : `
-                <div style="color: var(--text-tertiary); font-size: 12px; margin-top: 6px;">
-                  Portions adjusted to your macro targets
-                </div>
-              `}
-            </div>
-          `).join('')}
-        </div>
-        
-        <button onclick="closeSwapModal()" style="margin-top: 16px; padding: 12px 24px; background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; font-size: 14px;">
-          Cancel
-        </button>
-      </div>
-    </div>
-  `;
-  
-  // Remove existing modal if any
-  const existingModal = document.getElementById('swapModal');
-  if (existingModal) existingModal.remove();
-  
-  // Add new modal
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
-  // Add hover effects using CSS variables — works in both light and dark mode
-  setTimeout(() => {
-    document.querySelectorAll('.alternative-meal').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        el.style.borderColor = 'var(--accent-primary)';
-        el.style.background = 'var(--accent-soft)';
-      });
-      el.addEventListener('mouseleave', () => {
-        el.style.borderColor = 'var(--border-subtle)';
-        el.style.background = 'var(--bg-card)';
-      });
-    });
-  }, 100);
-}
 
-function confirmSwap(newMealKey) {
-  if (!currentSwapContext) return;
-  
-  const { dayNumber, mealType, day } = currentSwapContext;
-  
-  // Get new meal data
-  let newMeal;
-  if (mealType === 'breakfast') {
-    newMeal = breakfastRecipes[newMealKey];
-  } else if (mealType === 'lunch') {
-    newMeal = lunchRecipes[newMealKey];
-  } else if (mealType === 'dinner') {
-    newMeal = recipes[newMealKey];
-  } else if (mealType === 'snack') {
-    newMeal = snackOptions[newMealKey];
-  }
-  
-  if (!newMeal) {
-    alert('Meal not found');
-    return;
-  }
-  
-  // Update the meal in the day plan
-  day[mealType].meal = { key: newMealKey, ...newMeal };
-  
-  // Recalculate macros and cost
-  if (mealType === 'snack') {
-    // Snacks have fixed macros
-    day[mealType].macros = {
-      protein: newMeal.protein,
-      carbs: newMeal.carbs,
-      fat: newMeal.fat,
-      calories: (newMeal.protein * 4) + (newMeal.carbs * 4) + (newMeal.fat * 9)
-    };
-    day[mealType].cost = newMeal.cost;
-  } else {
-    // For breakfast/lunch/dinner, calculate macros from the new meal
-    const newMealMacros = calculateMealMacros(newMeal, mealType);
-    day[mealType].macros = newMealMacros;
-    day[mealType].cost = estimateMealCost(newMeal, mealType);
-  }
-  
-  // Recalculate day totals
-  day.actualMacros = {
-    protein: day.breakfast.macros.protein + day.lunch.macros.protein + day.dinner.macros.protein + (day.snack.macros.protein || 0),
-    carbs: day.breakfast.macros.carbs + day.lunch.macros.carbs + day.dinner.macros.carbs + (day.snack.macros.carbs || 0),
-    fat: day.breakfast.macros.fat + day.lunch.macros.fat + day.dinner.macros.fat + (day.snack.macros.fat || 0),
-    calories: day.breakfast.macros.calories + day.lunch.macros.calories + day.dinner.macros.calories + (day.snack.macros.calories || 0)
-  };
-  day.totalCost = day.breakfast.cost + day.lunch.cost + day.dinner.cost + day.snack.cost;
-  
-  // Invalidate shopping list cache - swap changed ingredients,
-  // so shopping tab + store comparison must regenerate from the new plan.
-  // Custom store prices survive (keyed by dbKey), only the item list refreshes.
-  state.dynamicShoppingList = null;
-  if (typeof saveState === 'function') saveState();
-  
-  // Save updated profile
-  localStorage.setItem('user-profile', JSON.stringify(profile));
-  
-  // Capture source before clearing context, then close any picker if present.
-  const source = (currentSwapContext && currentSwapContext.source) || 'weekly';
-  closeSwapModal();
-  
-  // Refresh home page with updated meal (always — keeps home in sync)
-  if (typeof updateMainPagePlanner === 'function') {
-    updateMainPagePlanner();
-  }
-  
-  if (source === 'weekly') {
-    // User came from the Weekly Plan modal — reopen it expanded to the swapped day.
-    // The user expects to verify their swap landed correctly in context.
-    if (typeof closeWeeklyPlanModal === 'function') closeWeeklyPlanModal();
-    setTimeout(() => {
-      openWeeklyPlanModal(dayNumber);
-      // openWeeklyPlanModal already auto-expands its targetDay arg, so we don't
-      // need a second toggleModalDay call here.
-    }, 100);
-  } else {
-    // User came from the home page — they're back on home with a refreshed plan.
-    // Don't pop a modal they didn't ask for. A toast confirms the action.
-    if (typeof showLogToast === 'function') {
-      const newName = (newMeal && newMeal.name) || 'meal';
-      showLogToast('Swapped to ' + newName);
-    }
-  }
-}
 
-function closeSwapModal() {
-  const modal = document.getElementById('swapModal');
-  if (modal) modal.remove();
-  currentSwapContext = null;
-}
 
 // ═══════════════════════════════════════════════════════════
 // VIEW RECIPE INLINE (in weekly planner)
@@ -24471,187 +23883,6 @@ function openRecipeFromHome(mealType, dayIdx) {
 // ─── Lunch instructions fallback ───────────────────────────────────
 // Lunch recipes in the recipe DB were defined without instructions arrays
 // (only ingredients). Rather than write 35+ individual instruction sets,
-// generate sensible step-by-step guidance from the meal type pattern.
-// The match is based on recipe ID/name keywords; falls back to a generic
-// "assemble + plate" template for anything not matched.
-function inferLunchInstructions(meal) {
-  if (!meal || !meal.name) return [];
-  const name = (meal.name || '').toLowerCase();
-  
-  // Wraps & sandwiches
-  if (name.includes('wrap') || name.includes('sandwich') || name.includes('burrito')) {
-    return [
-      'Cook protein if raw (chicken, turkey, etc.) — pan-sear over medium-high until cooked through, 6–8 min. Let rest 2 min, then slice.',
-      'Warm wrap or toast bread lightly to make it pliable and prevent sogginess.',
-      'Spread sauce or condiment evenly on the inside surface.',
-      'Layer protein, then greens, then any veggies, leaving a 1-inch border.',
-      'Roll tightly (wraps) or close (sandwich); slice in half for easier eating.'
-    ];
-  }
-  
-  // Bowls & power plates
-  if (name.includes('bowl') || name.includes('plate') || name.includes('power')) {
-    return [
-      'Cook the base grain (rice, quinoa, etc.) according to package directions if not already prepared.',
-      'Cook protein: pan-sear, grill, or use pre-cooked. Season simply with salt, pepper, and any cuisine-appropriate spices.',
-      'Prep veggies: chop, slice, or roast as needed. Roasted veggies (425°F for 20 min) develop the most flavor.',
-      'Build the bowl: grain on the bottom, protein and veggies arranged on top.',
-      'Drizzle with sauce or dressing just before eating.'
-    ];
-  }
-  
-  // Salads
-  if (name.includes('salad')) {
-    return [
-      'Cook protein if needed (grill chicken 6 min/side, sear salmon 4 min/side, or use pre-cooked).',
-      'Wash and dry greens thoroughly — wet greens dilute dressing.',
-      'Chop any vegetables and protein into bite-sized pieces.',
-      'In a large bowl, toss greens with about 2/3 of the dressing.',
-      'Top with protein, vegetables, and any garnishes; drizzle remaining dressing on top.'
-    ];
-  }
-  
-  // Soups
-  if (name.includes('soup') || name.includes('chili') || name.includes('stew')) {
-    return [
-      'Heat olive oil in a pot over medium heat. Sauté any aromatics (onion, garlic) 2–3 min until fragrant.',
-      'Add protein and brown lightly, 3–4 min.',
-      'Pour in broth and any canned tomatoes, beans, or vegetables.',
-      'Bring to a boil, then reduce heat and simmer 15–20 min until flavors meld.',
-      'Season to taste with salt, pepper, and herbs. Serve hot.'
-    ];
-  }
-  
-  // Stir-fry / Asian dishes
-  if (name.includes('stir') || name.includes('teriyaki') || name.includes('asian') || name.includes('thai')) {
-    return [
-      'Prep all ingredients first — stir-frying is fast and you won\'t have time mid-cook.',
-      'Heat 1 tbsp oil in a wok or large skillet over high heat until shimmering.',
-      'Add protein, spread in single layer; cook undisturbed 2 min, then stir-fry until cooked, 3–4 min more.',
-      'Add vegetables (firmer ones first), stir-fry 3–4 min until just tender.',
-      'Add sauce, toss to coat, cook 1 min more. Serve immediately over rice or noodles.'
-    ];
-  }
-  
-  // Pasta
-  if (name.includes('pasta') || name.includes('spaghetti') || name.includes('lasagna')) {
-    return [
-      'Bring a large pot of salted water to a boil. Cook pasta to al dente per package directions.',
-      'While pasta cooks: heat oil in a pan, cook protein until done, then set aside.',
-      'In the same pan, build sauce: sauté garlic 30 sec, add tomatoes/sauce, simmer 5 min.',
-      'Drain pasta (reserve 1/4 cup pasta water). Add pasta and protein to sauce, toss to coat.',
-      'Add a splash of pasta water if needed. Serve with cheese or fresh herbs.'
-    ];
-  }
-  
-  // Tacos & Mexican
-  if (name.includes('taco') || name.includes('quesadilla') || name.includes('fajita')) {
-    return [
-      'Cook protein: season with cumin, chili powder, and salt; pan-sear or grill until cooked through.',
-      'Warm tortillas in a dry skillet 30 sec per side, or wrap in foil and warm in oven.',
-      'Prep toppings: dice tomato, onion, avocado; shred cheese; chop cilantro.',
-      'Assemble: layer protein, then toppings, finishing with sauce/salsa.',
-      'Serve immediately with lime wedges.'
-    ];
-  }
-  
-  // Generic fallback for anything else
-  return [
-    'Cook any raw protein over medium-high heat until done (chicken/turkey: 6–8 min, fish: 4 min/side).',
-    'Prep all other components: wash greens, chop vegetables, measure portions per the ingredients list.',
-    'If the dish has a sauce or dressing, prepare it now so flavors can meld.',
-    'Combine all components on the plate or in a bowl, adding sauce/dressing last.',
-    'Season to taste with salt and pepper. Serve immediately.'
-  ];
-}
-
-function viewRecipe(mealType, dayNumber) {
-  if (!profile || !profile.weekPlan) return;
-  
-  const day = profile.weekPlan.find(d => d.day === dayNumber);
-  if (!day) return;
-  
-  const meal = day[mealType].meal;
-  const macros = day[mealType].macros;
-  const recipeContainer = document.getElementById(`recipe-${mealType}-${dayNumber}`);
-  
-  if (!recipeContainer) return;
-  
-  // Toggle visibility
-  if (recipeContainer.style.display === 'block') {
-    recipeContainer.style.display = 'none';
-    return;
-  }
-  
-  // Get ingredients
-  const ingredients = meal.getIngredients ? meal.getIngredients(macros) : [];
-  
-  // Get instructions — use stored if present, else infer from meal name/type.
-  // Lunch recipes were defined without instructions originally; this fallback
-  // ensures every recipe has guidance without requiring 35+ manual additions.
-  const instructions = (meal.instructions && meal.instructions.length > 0)
-    ? meal.instructions
-    : (typeof inferLunchInstructions === 'function' ? inferLunchInstructions(meal) : []);
-  
-  // Build recipe HTML (existing inline modal-recipe code continues below)
-  let html = `
-    <div style="background: var(--bg-card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
-      <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
-        <div style="width:14px;height:3px;background:var(--accent-primary);border-radius:2px;position:relative;flex-shrink:0;margin-top:8px;">
-          <div style="position:absolute;right:-3px;top:-2px;width:7px;height:7px;border-radius:50%;background:var(--accent-primary);"></div>
-        </div>
-        <h3 style="margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; flex: 1; letter-spacing: -0.01em;">${meal.emoji || '🍽️'} ${meal.name}</h3>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-          ${meal.cuisine ? `<span style="background: var(--accent-soft); color: var(--accent-primary); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${meal.cuisine}</span>` : ''}
-          ${meal.prepTime ? `<span style="background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">⏱ ${meal.prepTime}</span>` : ''}
-          ${meal.difficulty ? `<span style="background: var(--energy-soft); color: var(--warning); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${meal.difficulty}</span>` : ''}
-        </div>
-      </div>
-      
-      ${meal.description ? `
-        <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 14px 0;">${meal.description}</p>
-      ` : ''}
-      
-      <div style="margin-bottom: 14px;">
-        <div style="font-weight:700;font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Ingredients</div>
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 12px 12px 12px 32px; border-radius: 10px;">
-          ${ingredients.length > 0 ? `
-            <ul style="margin: 0; padding-left: 0; font-size: 13px; color: var(--text-primary); line-height: 1.8;">
-              ${ingredients.map(ing => `<li>${ing}</li>`).join('')}
-            </ul>
-          ` : '<p style="margin: 0; color: var(--text-tertiary); font-size: 13px;">No ingredients listed</p>'}
-        </div>
-      </div>
-      
-      ${instructions && instructions.length > 0 ? `
-        <div>
-          <div style="font-weight:700;font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Instructions</div>
-          <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 12px 12px 12px 32px; border-radius: 10px;">
-            <ol style="margin: 0; padding-left: 0; font-size: 13px; color: var(--text-primary); line-height: 1.8;">
-              ${instructions.map(step => `<li style="margin-bottom: 6px;">${step}</li>`).join('')}
-            </ol>
-          </div>
-        </div>
-      ` : ''}
-      
-      <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <div style="font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums;">
-          <strong style="color: var(--text-primary); font-weight: 700;">${Math.round(macros.calories)} cal</strong>
-          &nbsp;·&nbsp; ${Math.round(macros.protein)}p · ${Math.round(macros.carbs)}c · ${Math.round(macros.fat)}f
-        </div>
-        <button onclick="viewRecipe('${mealType}', ${dayNumber})" style="padding: 8px 14px; background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">
-          Close
-        </button>
-      </div>
-    </div>
-  `;
-  
-  recipeContainer.innerHTML = html;
-  recipeContainer.style.display = 'block';
-  
-  // Scroll to the recipe
-  recipeContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
 
 // ═══════════════════════════════════════════════════════════
 // POPULATE WATER TAB (HYDRATION SCHEDULE)

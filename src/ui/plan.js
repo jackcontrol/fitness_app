@@ -1100,3 +1100,161 @@ export function getMealTimingGuide() {
   }
   return universalSection + specificGuide;
 }
+
+// ─── Session 18: viewRecipe + inferLunchInstructions ──────────────
+// Lifted verbatim from monolith. Reads window.profile.weekPlan.
+
+export function inferLunchInstructions(meal) {
+  if (!meal || !meal.name) return [];
+  const name = (meal.name || '').toLowerCase();
+
+  if (name.includes('wrap') || name.includes('sandwich') || name.includes('burrito')) {
+    return [
+      'Cook protein if raw (chicken, turkey, etc.) — pan-sear over medium-high until cooked through, 6–8 min. Let rest 2 min, then slice.',
+      'Warm wrap or toast bread lightly to make it pliable and prevent sogginess.',
+      'Spread sauce or condiment evenly on the inside surface.',
+      'Layer protein, then greens, then any veggies, leaving a 1-inch border.',
+      'Roll tightly (wraps) or close (sandwich); slice in half for easier eating.',
+    ];
+  }
+  if (name.includes('bowl') || name.includes('plate') || name.includes('power')) {
+    return [
+      'Cook the base grain (rice, quinoa, etc.) according to package directions if not already prepared.',
+      'Cook protein: pan-sear, grill, or use pre-cooked. Season simply with salt, pepper, and any cuisine-appropriate spices.',
+      'Prep veggies: chop, slice, or roast as needed. Roasted veggies (425°F for 20 min) develop the most flavor.',
+      'Build the bowl: grain on the bottom, protein and veggies arranged on top.',
+      'Drizzle with sauce or dressing just before eating.',
+    ];
+  }
+  if (name.includes('salad')) {
+    return [
+      'Cook protein if needed (grill chicken 6 min/side, sear salmon 4 min/side, or use pre-cooked).',
+      'Wash and dry greens thoroughly — wet greens dilute dressing.',
+      'Chop any vegetables and protein into bite-sized pieces.',
+      'In a large bowl, toss greens with about 2/3 of the dressing.',
+      'Top with protein, vegetables, and any garnishes; drizzle remaining dressing on top.',
+    ];
+  }
+  if (name.includes('soup') || name.includes('chili') || name.includes('stew')) {
+    return [
+      'Heat olive oil in a pot over medium heat. Sauté any aromatics (onion, garlic) 2–3 min until fragrant.',
+      'Add protein and brown lightly, 3–4 min.',
+      'Pour in broth and any canned tomatoes, beans, or vegetables.',
+      'Bring to a boil, then reduce heat and simmer 15–20 min until flavors meld.',
+      'Season to taste with salt, pepper, and herbs. Serve hot.',
+    ];
+  }
+  if (name.includes('stir') || name.includes('teriyaki') || name.includes('asian') || name.includes('thai')) {
+    return [
+      "Prep all ingredients first — stir-frying is fast and you won't have time mid-cook.",
+      'Heat 1 tbsp oil in a wok or large skillet over high heat until shimmering.',
+      'Add protein, spread in single layer; cook undisturbed 2 min, then stir-fry until cooked, 3–4 min more.',
+      'Add vegetables (firmer ones first), stir-fry 3–4 min until just tender.',
+      'Add sauce, toss to coat, cook 1 min more. Serve immediately over rice or noodles.',
+    ];
+  }
+  if (name.includes('pasta') || name.includes('spaghetti') || name.includes('lasagna')) {
+    return [
+      'Bring a large pot of salted water to a boil. Cook pasta to al dente per package directions.',
+      'While pasta cooks: heat oil in a pan, cook protein until done, then set aside.',
+      'In the same pan, build sauce: sauté garlic 30 sec, add tomatoes/sauce, simmer 5 min.',
+      'Drain pasta (reserve 1/4 cup pasta water). Add pasta and protein to sauce, toss to coat.',
+      'Add a splash of pasta water if needed. Serve with cheese or fresh herbs.',
+    ];
+  }
+  if (name.includes('taco') || name.includes('quesadilla') || name.includes('fajita')) {
+    return [
+      'Cook protein: season with cumin, chili powder, and salt; pan-sear or grill until cooked through.',
+      'Warm tortillas in a dry skillet 30 sec per side, or wrap in foil and warm in oven.',
+      'Prep toppings: dice tomato, onion, avocado; shred cheese; chop cilantro.',
+      'Assemble: layer protein, then toppings, finishing with sauce/salsa.',
+      'Serve immediately with lime wedges.',
+    ];
+  }
+  return [
+    'Cook any raw protein over medium-high heat until done (chicken/turkey: 6–8 min, fish: 4 min/side).',
+    'Prep all other components: wash greens, chop vegetables, measure portions per the ingredients list.',
+    'If the dish has a sauce or dressing, prepare it now so flavors can meld.',
+    'Combine all components on the plate or in a bowl, adding sauce/dressing last.',
+    'Season to taste with salt and pepper. Serve immediately.',
+  ];
+}
+
+export function viewRecipe(mealType, dayNumber) {
+  const profile = window.profile;
+  if (!profile || !profile.weekPlan) return;
+
+  const day = profile.weekPlan.find(d => d.day === dayNumber);
+  if (!day) return;
+
+  const meal = day[mealType].meal;
+  const macros = day[mealType].macros;
+  const recipeContainer = document.getElementById(`recipe-${mealType}-${dayNumber}`);
+  if (!recipeContainer) return;
+
+  if (recipeContainer.style.display === 'block') {
+    recipeContainer.style.display = 'none';
+    return;
+  }
+
+  const ingredients = meal.getIngredients ? meal.getIngredients(macros) : [];
+  const instructions = (meal.instructions && meal.instructions.length > 0)
+    ? meal.instructions
+    : inferLunchInstructions(meal);
+
+  let html = `
+    <div style="background: var(--bg-card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+      <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
+        <div style="width:14px;height:3px;background:var(--accent-primary);border-radius:2px;position:relative;flex-shrink:0;margin-top:8px;">
+          <div style="position:absolute;right:-3px;top:-2px;width:7px;height:7px;border-radius:50%;background:var(--accent-primary);"></div>
+        </div>
+        <h3 style="margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; flex: 1; letter-spacing: -0.01em;">${meal.emoji || '🍽️'} ${meal.name}</h3>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          ${meal.cuisine ? `<span style="background: var(--accent-soft); color: var(--accent-primary); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${meal.cuisine}</span>` : ''}
+          ${meal.prepTime ? `<span style="background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">⏱ ${meal.prepTime}</span>` : ''}
+          ${meal.difficulty ? `<span style="background: var(--energy-soft); color: var(--warning); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${meal.difficulty}</span>` : ''}
+        </div>
+      </div>
+
+      ${meal.description ? `
+        <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 14px 0;">${meal.description}</p>
+      ` : ''}
+
+      <div style="margin-bottom: 14px;">
+        <div style="font-weight:700;font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Ingredients</div>
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 12px 12px 12px 32px; border-radius: 10px;">
+          ${ingredients.length > 0 ? `
+            <ul style="margin: 0; padding-left: 0; font-size: 13px; color: var(--text-primary); line-height: 1.8;">
+              ${ingredients.map(ing => `<li>${ing}</li>`).join('')}
+            </ul>
+          ` : '<p style="margin: 0; color: var(--text-tertiary); font-size: 13px;">No ingredients listed</p>'}
+        </div>
+      </div>
+
+      ${instructions && instructions.length > 0 ? `
+        <div>
+          <div style="font-weight:700;font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Instructions</div>
+          <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 12px 12px 12px 32px; border-radius: 10px;">
+            <ol style="margin: 0; padding-left: 0; font-size: 13px; color: var(--text-primary); line-height: 1.8;">
+              ${instructions.map(step => `<li style="margin-bottom: 6px;">${step}</li>`).join('')}
+            </ol>
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <div style="font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums;">
+          <strong style="color: var(--text-primary); font-weight: 700;">${Math.round(macros.calories)} cal</strong>
+          &nbsp;·&nbsp; ${Math.round(macros.protein)}p · ${Math.round(macros.carbs)}c · ${Math.round(macros.fat)}f
+        </div>
+        <button onclick="viewRecipe('${mealType}', ${dayNumber})" style="padding: 8px 14px; background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  recipeContainer.innerHTML = html;
+  recipeContainer.style.display = 'block';
+  recipeContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}

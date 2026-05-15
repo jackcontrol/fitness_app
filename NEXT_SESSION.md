@@ -177,6 +177,53 @@ Picks up where last session ended. Refactor plan canonical at
     fields + state mutations. Plan: Session 17 lifts to features/assessment.js
     along with detectPatternFromProfile + generateOptimalWeek + helpers.
 
+- **Session 16** — profileModal lift (Phase A + Phase B). 27,719 → 26,306 (-1,413).
+  Phase A (-1,022): deleted profileModal HTML L1304-2325. Rewrote
+  `src/ui/modals/profile.js` to strip 3 embedded `<script>` blocks. New
+  `src/ui/modals/profile-controller.js` with `nextPage`/`prevPage`/`skipDetailedAssessment`
+  + module-scoped `currentPage` + `install()` (wires gender + motivation listeners
+  post-mount). Phase B (-391): lifted `openProfileModal`, `closeProfileModal`,
+  `closeProfileEditModal`, `openProfileEdit` → profile-controller; lifted
+  `checkProfile` → new `src/bootstrap/checkProfile.js`. State writes via
+  `window.profile = X` (Object.defineProperty bridge propagates). Build green
+  1,045 KB / 241 KB gzip. Browser smoke deferred per aggressive-sweep policy.
+
+- **Session 17** — Profile region finish. 26,306 → 24,840 (-1,466).
+  New `src/features/assessment.js`: `submitProfileAssessment` (47-field form
+  submit, renamed to avoid clash with state-mod `saveProfile`),
+  `detectPatternFromProfile`, `generateOptimalWeek` + filterMealsByCuisine +
+  selectMealsForDay + optimizeWeekForBudget, `rehydrateMealMethods`, 5 calc
+  utils (BMR/activity/hydration/calories/macros), `updateHeaderWithProfile`.
+  New `src/ui/modals/quickStart.js`: `openQuickStartModal` + qsPick +
+  commitQuickStart, `browseAnonymously`, `openQuickGoalModal` +
+  selectQuickGoalPace + saveQuickGoal. main.js wired ~18 window shims +
+  recipe DB imports (breakfastRecipes/lunchRecipes/recipes/snackOptions) +
+  calculateWeeklyIngredients + saveState + todayISO shims. Monolith got
+  `window.shoppingCategories` shim + `window.calculateMealMacros` shim for
+  module consumption. 5 batches deleted with build-green between each.
+  4 bare-name call sites in remaining monolith rewritten to `window.*`.
+  Committed `f8f9448 Session 17`.
+
+- **Session 18** — Food search + recipe + weight log + swap cluster.
+  24,840 → 24,071 (-769). New `src/ui/foodSearch.js` (9 fns: closeFoodSearch,
+  searchFoods, renderSearchResults, selectFood, parseServing, servingRatio,
+  addFoodToMeal, addFoodToMealDirect, searchFoodsWithRemote). New
+  `src/ui/modals/weightLog.js` (openWeightLogModal + saveWeightFromModal).
+  `src/ui/plan.js` extended with `viewRecipe` + `inferLunchInstructions`.
+  `src/ui/modals/swap.js` extended with `swapMeal` + `getAlternativeMeals` +
+  `confirmSwap` + module-private `currentSwapContext` (was monolith
+  script-scoped let; now owned by the module so the trio shares state without
+  bridging). closeSwapModal updated to clear ctx. main.js wired 16 new window
+  shims + `Object.defineProperty` bridge for `multiAddState` (was let, gets
+  reassigned in toggleMultiAddMode — plain `window.X = X` would diverge).
+  4 batches deleted: food search (-314), recipe (-181), weight log (-73),
+  swap cluster (-216). 9 bare-name call sites rewritten to `window.*` in
+  remaining monolith. **Left in monolith intentionally**: `swapBreakfastForDay`
+  + `closeBreakfastSwapModal` (deep render deps — calculateWeeklyBudget,
+  distributeRemainingMacros, renderMealPlanner, renderBudgetTracker,
+  renderBudgetOptimizationPanel). Defer to S19. Browser smoke deferred per
+  aggressive-sweep policy. **Uncommitted** — pending manual commit.
+
 - **Session 15.1** — Window state bridge regression fix uncovered by browser smoke.
   Phase B sweep promoted modules to authoritative but they read
   `window.state` / `window.profile` / `window.foodDatabase` — all three were
@@ -299,20 +346,21 @@ src/
 
 ## What's still in the monolith
 
-### index.html current state (session 15.1)
+### index.html current state (session 18, uncommitted)
 
-- **27,716 lines** (was 28,695 after session 14, 40,265 original — net −12,549 / −31%)
-- L1–~1305: head + CSS + manifest links
-- L1305–~2380: profileModal HTML (~1075 LOC) — still inline; inline `<script>` blocks lift
-- L~2380–~2640: minor inline modal stubs + nav styles + `<div id="app"></div>`
-- L2641–27,714: main app JS body (~25K LOC)
-- L27,715–27,716: `</body></html>`
-- **All 19 IIFE patch blocks deleted (session 10).**
-- **A1/A2/A3 dead shimmed blocks deleted (session 14, 3,156 LOC).**
-- **B2/B3 food mutation fns deleted (session 15, 169 LOC).**
-- **16 dead-shim fns deleted (session 15, 604 LOC).**
-- **5 inline modal HTML blocks deleted (session 15, 220 LOC).**
-- **3 window bridges added (session 15.1) — `state`/`profile` accessors + `foodDatabase` plain assign.**
+- **24,071 lines** (was 27,716 after 15.1, 40,265 original — net −16,194 / −40%)
+- L1–~1280: head + CSS + manifest links
+- L~1280–~1620: small inline modal stubs + nav styles + `<div id="app"></div>`
+- L~1620–24,069: main app JS body (~22K LOC)
+- L24,070–24,071: `</body></html>`
+- **profileModal HTML deleted (session 16, -1,022 LOC).**
+- **profile-region fns deleted (sessions 16+17, ~1,800 LOC total).**
+- **Food search + recipe + weight log + swap cluster deleted (session 18, -769 LOC).**
+- **5 window bridges live**: `state`/`profile` accessors (15.1), `foodDatabase`
+  plain assign (15.1), `shoppingCategories` plain assign (17), `multiAddState`
+  Object.defineProperty (18). Recipe DBs (breakfastRecipes/lunchRecipes/recipes/
+  snackOptions) + `calculateWeeklyIngredients` + `saveState` + `todayISO` wired
+  via main.js shims (17).
 
 ### Main app body (L2641–27,714) — cannot delete until lifted
 
@@ -325,14 +373,25 @@ Tab renders + food actions — **all deleted in earlier sessions**:
 
 Cross-tab helpers still in monolith body (not yet lifted):
 - `renderHydrationSchedule` (depends on un-lifted `toggleHydration` — deferred)
-- `swapMeal`, `viewRecipe` (complex, deferred)
-- `openWeightLogModal` (still monolith — built modal dynamically)
-- `getWeeklyWeightChange`, `computeRecoverySignal`, `getCurrentWeekKey`, etc.
-- `selectFood`, `addFoodToMeal`, `searchFoodsWithRemote` + food-search machinery
-- `checkProfile`, `openQuickStartModal`, `detectPatternFromProfile`,
-  `rehydrateMealMethods` (assessment + onboarding flow)
+- `swapBreakfastForDay`, `closeBreakfastSwapModal` (deep render deps — defer)
+- `calculateMealMacros`, `estimateMealCost` (called from confirmSwap module via window)
+- `getWeeklyWeightChange`, `computeRecoverySignal`, `getCurrentWeekKey`,
+  `logWeight`, `getTrendWeight` (still monolith — modules access via window)
+- `updateFoodDetailNutrition`, `closeFoodDetail`, `showAllFoods`, `setActiveTab`,
+  `ensureDateEntry`, `saveFoodDiary`, `refreshAfterFoodLog`, `addToRecent`
+  (food search support fns — kept in monolith; foodSearch module routes via window)
 - `subscribePro`, `dismissTopBanner` and other trial / banner callbacks
 - hundreds more original functions
+
+✅ **Lifted in sessions 16-18:**
+- profileModal HTML + nav controller + checkProfile bootstrap (S16)
+- saveProfile, detectPatternFromProfile, generateOptimalWeek, rehydrateMealMethods,
+  5 calc utils, updateHeaderWithProfile, quick-start/quick-goal modals, browseAnonymously (S17)
+- closeFoodSearch, searchFoods, renderSearchResults, selectFood, parseServing,
+  servingRatio, addFoodToMeal, addFoodToMealDirect, searchFoodsWithRemote (S18)
+- viewRecipe + inferLunchInstructions (S18)
+- openWeightLogModal + saveWeightFromModal (S18)
+- swapMeal + getAlternativeMeals + confirmSwap + currentSwapContext state (S18)
 
 Shadowed by `window.*` shims (module overrides authoritative, monolith inert
 — OR monolith copy already deleted in session 15):
@@ -354,10 +413,12 @@ Shadowed by `window.*` shims (module overrides authoritative, monolith inert
 |---|---|---|
 | `paywallModal` | src/ui/modals/paywall.js | ✓ Lifted complete |
 | `weeklyPlanModal` | src/ui/modals/weeklyPlan.js | ✓ Lifted + V1622 reconciled |
-| `swapModal` (day-level) | src/ui/modals/swap.js | ✓ Lifted complete |
+| `swapModal` (day-level) | src/ui/modals/swap.js | ✓ Lifted + swapMeal/getAlternativeMeals/confirmSwap (S18) |
 | `voiceLogModal` | src/ui/modals/voiceLog.js | ✓ Lifted complete |
 | `aiPhotoLogModal` | src/ui/modals/aiPhotoLog.js | ✓ Entry only (downstream deferred) |
-| `profileModal` | src/ui/modals/profile.js | ✓ Template only (1021 LOC) |
+| `profileModal` | src/ui/modals/profile.js | ✓ Template + controller (S16) |
+| `quickStartModal` + `quickGoalModal` | src/ui/modals/quickStart.js | ✓ Dynamic factory (S17) |
+| `weightLogModal` | src/ui/modals/weightLog.js | ✓ Dynamic factory (S18) |
 
 ### Still deferred
 
@@ -365,8 +426,8 @@ Shadowed by `window.*` shims (module overrides authoritative, monolith inert
   `callAIPhotoAnalysis`, `showAIPhotoReview`, `confirmAIPhotoLog`,
   `escapeAIText`, `updateAIPhotoTotals`. Need to factor `aiPhotoSession`
   + `AI_PHOTO_CONFIG` into module state.
-- **profileModal inline `<script>`** — nextPage/prevPage/saveProfile
-  placeholders. Extract to `src/ui/modals/profile-controller.js`.
+- ~~**profileModal inline `<script>`**~~ — done in S16, controller in
+  `src/ui/modals/profile-controller.js`.
 
 ---
 
@@ -376,35 +437,30 @@ Items 1–3 complete (sessions 11–12). Remaining: long tail only.
 
 ### Remaining distance to thin shell
 
-- **Now:** 27,716 LOC
+- **Now:** 24,071 LOC (post-S18, uncommitted)
 - **Target:** ~30 LOC (single `<div id="app"></div>` + `<script type="module">` + minimal head)
-- **Remaining:** ~27,686 LOC (≈99% by line count, but per-fn cost drops as
-  more cross-tab helpers move to modules — the long tail is mostly small fns).
+- **Remaining:** ~24,041 LOC (long tail mostly small fns).
 
-Major next-slice candidates (rough sizing):
-- **`profileModal` HTML + inline `<script>`** (~1075 LOC) — biggest single deletable
-  chunk. Extract `nextPage`/`prevPage`/`saveProfile` controller to
-  `src/ui/modals/profile-controller.js`, then strip inline HTML.
-- **`openWeightLogModal` + weight modal subsystem** (~150 LOC) — dynamic modal
-  builder; lift to `src/ui/modals/weightLog.js`.
-- **`checkProfile` + assessment dispatch** (~300 LOC) — onboarding entry point;
-  most of its branches are already handled by modules.
-- **Food search supporting fns** (`selectFood`, `addFoodToMeal`,
-  `searchFoodsWithRemote`, `closeFoodSearch`, food-detail nutrition update, etc.)
-  — couple thousand LOC clustered around L9000–11500.
-- **Already-shadowed monolith fns** (~1000 LOC, sweep #2):
-  `renderFoodDiary`, `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`,
-  `renderDynamicShopping`, `updateMainPagePlanner`, `generateShoppingList`,
-  `analyzeStoreRecommendations`, `parseIngredientString`. All have `window.*`
-  shims pointing at modules — copies inert. Same pattern as session 15 Phase B.
-- **`swapMeal`, `viewRecipe`** + meal-rotation machinery (~1.5K LOC).
-- **`getWeeklyWeightChange`, `computeRecoverySignal`, `computeWeeklyAdjustment`**
-  (already in modules but monolith copies remain) — small batch sweep.
-- **Trial / paywall caller sites** (`subscribePro`, `dismissTopBanner` etc.) — ~500 LOC.
-- **Remaining cross-tab event handlers + hundreds of small fns.**
+Session 19 candidates (per refactor roadmap):
+- **Trial / paywall callers**: `subscribePro`, `dismissTopBanner`, `ensureTrialState` +
+  helpers → extend `src/features/trial.js` or new `src/ui/trial.js` (~500 LOC).
+- **Hydration rendering**: `renderHydrationSchedule`, `toggleHydration` → extend
+  `src/features/hydration.js`.
+- **Weight subsystem residue**: `getWeeklyWeightChange`, `computeRecoverySignal`,
+  `getCurrentWeekKey`, `computeWeeklyAdjustment`, `logWeight`, `getTrendWeight` —
+  confirm against modules; lift any not yet there.
+- **swapBreakfastForDay** + `closeBreakfastSwapModal` — deferred from S18 (deep
+  render deps: calculateWeeklyBudget, distributeRemainingMacros, renderMealPlanner,
+  renderBudgetTracker, renderBudgetOptimizationPanel).
+- **Already-shadowed monolith fns** (sweep #2): `renderFoodDiary`,
+  `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`, `renderDynamicShopping`,
+  `updateMainPagePlanner`, `generateShoppingList`, `analyzeStoreRecommendations`,
+  `parseIngredientString`. All have `window.*` shims pointing at modules — copies inert.
+- **Bulk delete phase**: ~16K LOC of remaining long tail. Grep `function ` defs,
+  cross-reference vs module exports, bulk-delete inert regions, fix forward.
 
-Rough scoping: 4–6 sessions of similar volume to slice 15 reach <5K LOC. Then
-a final pass strips remaining helpers + comments + dead state.
+Rough scoping per roadmap: S19 final sweep → ~4.5K LOC shell, then 1-2 follow-up
+sessions strip remaining modal HTML + collapse head → ~30 LOC.
 
 ---
 
@@ -420,6 +476,9 @@ a final pass strips remaining helpers + comments + dead state.
 | Session 14 (long-tail delete + B1 + bug fixes) | 1,183 KB | 270 KB (main bundle 460 KB / 112 KB) |
 | Session 15 (B2/B3 + dead-shim sweep + modal strip) | 1,135 KB | 258 KB (main bundle 464 KB / 113 KB) |
 | Session 15.1 (window bridge + missed shims) | 1,135 KB | 258 KB (main bundle 464 KB / 113 KB) |
+| Session 16 (profileModal lift) | 1,045 KB | 241 KB (main bundle 510 KB / 124 KB) |
+| Session 17 (profile region finish) | ~990 KB | ~228 KB (assessment + quickStart modules added) |
+| Session 18 (foodSearch + recipe + weightLog + swap) | ~1,046 KB | ~242 KB (4 module surfaces extended/new) |
 | Target (thin shell) | ~3 KB | — |
 
 ---
