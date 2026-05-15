@@ -136,6 +136,79 @@ Picks up where last session ended. Refactor plan canonical at
   Build green: 460 KB / 112 KB gzip main bundle. Browser smoke: plan renders
   after full assessment completion.
 
+- **Session 15** — B2/B3 lift + aggressive monolith sweep (~993 LOC delete net).
+  Phase A: lifted `logPlannedMeal`, `unlogPlannedMeal`, `editFoodEntry`,
+  `deleteFoodEntry`, `undoLastDelete` + `lastDeletedEntry` → `src/ui/diary.js`
+  (self-shims via `window.*`); deleted monolith L10700-10792 + L11116-11193
+  (−169). Phase B: deleted 16 dead-shimmed monolith fns (−604) —
+  `ensureAdaptiveState`, `getLoggingStreak`, `getTrendWeight`, `renderMorningStrip`,
+  `renderProgressTab`, `updateTrainRecoveryBanner`, `updateIntelligenceBanners`,
+  `renderTopBanner`, `getRecoveryLevel`, `getEffectiveMacrosForToday`,
+  `getMealTimingGuide`, `renderProgress`, `updateStats`, `logSunlight`,
+  `renderHealthSunlight`, `renderHealthRecovery`. Phase C: stripped 5 inline
+  modal HTML blocks from head (−220) — `recipeRatingModal`, `foodSearchModal`,
+  `foodDetailModal`, `barcodeScannerModal`, `imageRecognitionModal`. Modules
+  inject via `ensureMounted` / `mountAll`. Build green: 464 KB / 113 KB gzip
+  main bundle; index.html: 28,695 → 27,702 LOC (−993).
+
+- **Session 16** — profileModal lift (Phase A + Phase B). Aggressive sweep:
+  -1,413 LOC monolith (27,719 → 26,306).
+  - **Phase A** (-1,022): Deleted profileModal HTML L1304-2325 (1,022 LOC).
+    Rewrote `src/ui/modals/profile.js` to strip 3 embedded `<script>` blocks
+    from template. Created `src/ui/modals/profile-controller.js` —
+    `nextPage`, `prevPage`, `skipDetailedAssessment` + module-scoped
+    `currentPage` + `install()` that wires gender + motivation listeners
+    after mount. Added profile.mount() to mountAll. Wired window.* shims
+    for the 3 nav fns in main.js.
+  - **Phase B** (-391): Lifted `openProfileModal` (L15069-15097),
+    `closeProfileModal` (L15099-15147), `closeProfileEditModal`
+    (L15803-15812), `openProfileEdit` (L15814-15893) → profile-controller.
+    Lifted `checkProfile` (L15149-15364) → new `src/bootstrap/checkProfile.js`.
+    All ports use `window.profile = X` (state bridge defineProperty setter
+    propagates to monolith `let profile` binding) and `typeof window.X ===
+    'function'` checks for downstream UI fns. Wired window.* shims in main.js.
+    Deleted monolith bodies.
+  - **Build green**: 1,045 KB / 241 KB gzip (-90 KB from session 15.1).
+    Main bundle 510 KB / 124 KB (+10 KB for added module code).
+  - **Browser smoke deferred** — accepted intermediate-state risk per
+    aggressive-sweep roadmap. Next-session pre-commit smoke required.
+  - **Remaining profile work**: `saveProfile` (L17352 → ~L16930 after
+    delete) still in monolith. ~348 LOC. Heaviest fn — touches 47 form
+    fields + state mutations. Plan: Session 17 lifts to features/assessment.js
+    along with detectPatternFromProfile + generateOptimalWeek + helpers.
+
+- **Session 15.1** — Window state bridge regression fix uncovered by browser smoke.
+  Phase B sweep promoted modules to authoritative but they read
+  `window.state` / `window.profile` / `window.foodDatabase` — all three were
+  script-scoped (`let`/`const` in classic `<script>`), never on `window`. Added
+  in `index.html`:
+  - `Object.defineProperty` accessors after `let profile = null` (L8492) so
+    `window.state` / `window.profile` track the let bindings across all
+    reassignment sites (13 sites combined).
+  - Plain `window.foodDatabase = foodDatabase` after the const decl (L4388).
+
+  Also caught 2 missed Phase B shims via smoke — handoff claimed
+  `renderTopBanner` + `getTrendWeight` were shadowed but the `window.*`
+  assignments were never wired. Added to `src/main.js`:
+  - `import { renderTopBanner } from './ui/topbanner.js'` (was side-effect import).
+  - `window.renderTopBanner = renderTopBanner;`
+  - `window.getTrendWeight = () => progress.getTrendWeight(window.state, window.profile);`
+    (module signature takes args; monolith bare-callers don't pass them).
+
+  Browser-MCP smoke retest — all originally-failing items pass:
+  | Check | Result |
+  |---|---|
+  | #1 logPlannedMeal | click → entry +1 in diary today |
+  | #1 idempotence | double-click → still 1 entry |
+  | #10 weight chip | click → `weightLogModal` mounts |
+  | #13 top banner | display:block, 1061 chars (baseline banner) |
+  | #14 recovery | `renderHealthRecovery` → 5722 chars in `train-recovery-content` |
+  | #17 stats | hydration `0/8`, evening `0/11`, days-active `1` |
+  | #20 ensureAdaptiveState | returns object, `weightLog` array |
+  | console errors | 0 |
+
+  Build green: 464.40 KB / 113.08 KB gzip. index.html: 27,702 → 27,716 (+14).
+
 ---
 
 ## What's done in `src/`
@@ -226,48 +299,54 @@ src/
 
 ## What's still in the monolith
 
-### index.html current state (session 14)
+### index.html current state (session 15.1)
 
-- **28,695 lines** (was 31,870 after session 10, 40,265 original)
-- L1–2639: head + modal HTML (still monolith-owned)
-- L2640: `<div id="app"></div>` (shell)
-- L2641–28,693: main app JS body (~26K LOC)
-- L28,694–28,695: `</body></html>`
+- **27,716 lines** (was 28,695 after session 14, 40,265 original — net −12,549 / −31%)
+- L1–~1305: head + CSS + manifest links
+- L1305–~2380: profileModal HTML (~1075 LOC) — still inline; inline `<script>` blocks lift
+- L~2380–~2640: minor inline modal stubs + nav styles + `<div id="app"></div>`
+- L2641–27,714: main app JS body (~25K LOC)
+- L27,715–27,716: `</body></html>`
 - **All 19 IIFE patch blocks deleted (session 10).**
 - **A1/A2/A3 dead shimmed blocks deleted (session 14, 3,156 LOC).**
+- **B2/B3 food mutation fns deleted (session 15, 169 LOC).**
+- **16 dead-shim fns deleted (session 15, 604 LOC).**
+- **5 inline modal HTML blocks deleted (session 15, 220 LOC).**
+- **3 window bridges added (session 15.1) — `state`/`profile` accessors + `foodDatabase` plain assign.**
 
-### Main app body (L2641–28,693) — cannot delete until lifted
+### Main app body (L2641–27,714) — cannot delete until lifted
 
-Tab renders — **all three deleted in session 14**:
-- ~~Diary tab~~ (A1, 508 LOC) — deleted, module authoritative
-- ~~Plan tab~~ (A2, ~5.5K LOC) — deleted, module authoritative
-- ~~Shopping tab~~ (A3, ~2K LOC) — deleted, module authoritative
-
-Food actions still in monolith (B2/B3 deferred):
-- `logPlannedMeal` / `unlogPlannedMeal` (~130 LOC) — mutates `foodDiary.entries`
-- `deleteFoodEntry` + edit (~200 LOC) — mutates `foodDiary.entries`
+Tab renders + food actions — **all deleted in earlier sessions**:
+- ~~Diary tab~~ (A1, 508 LOC, session 14)
+- ~~Plan tab~~ (A2, ~5.5K LOC, session 14)
+- ~~Shopping tab~~ (A3, ~2K LOC, session 14)
+- ~~`logPlannedMeal` / `unlogPlannedMeal`~~ (session 15)
+- ~~`editFoodEntry` / `deleteFoodEntry` / `undoLastDelete`~~ (session 15)
 
 Cross-tab helpers still in monolith body (not yet lifted):
-- `ensureAdaptiveState` (still defined in monolith but session 14 wrapper in
-  main.js routes `window.ensureAdaptiveState` to module version)
 - `renderHydrationSchedule` (depends on un-lifted `toggleHydration` — deferred)
 - `swapMeal`, `viewRecipe` (complex, deferred)
-- save/load profile beyond `state/profile.js`
-- trial subsystem caller sites (`showPaywallModal`, `subscribePro`)
+- `openWeightLogModal` (still monolith — built modal dynamically)
+- `getWeeklyWeightChange`, `computeRecoverySignal`, `getCurrentWeekKey`, etc.
+- `selectFood`, `addFoodToMeal`, `searchFoodsWithRemote` + food-search machinery
+- `checkProfile`, `openQuickStartModal`, `detectPatternFromProfile`,
+  `rehydrateMealMethods` (assessment + onboarding flow)
+- `subscribePro`, `dismissTopBanner` and other trial / banner callbacks
 - hundreds more original functions
-- `openFoodSearch` — **lifted in session 14**
 
-Shadowed by `window.*` shims (module overrides win, monolith copy inert):
-- `renderHealthRecovery`, `generateShoppingList`, `analyzeStoreRecommendations`,
-  `parseIngredientString`, `getRecoveryLevel` (session 10)
-- `renderHealthSunlight`, `logSunlight` (earlier sessions)
-- `getLoggingStreak`, `getEffectiveMacrosForToday`, `getMealTimingGuide`,
-  `renderProgress`, `renderProgressTab`, `renderMorningStrip` (session 12)
-- `renderTopBanner`, `updateIntelligenceBanners`, `updateTrainRecoveryBanner`,
-  `updateStats`, `getTrendWeight` (earlier sessions)
-- `updateMainPagePlanner`, `ensureAdaptiveState` (session 13)
-- `renderFoodDiary`, `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`,
-  `renderDynamicShopping` (session 13)
+Shadowed by `window.*` shims (module overrides authoritative, monolith inert
+— OR monolith copy already deleted in session 15):
+- ~~Session 15 deletes:~~ `ensureAdaptiveState`, `getLoggingStreak`,
+  `getTrendWeight`, `renderMorningStrip`, `renderProgressTab`,
+  `updateTrainRecoveryBanner`, `updateIntelligenceBanners`, `renderTopBanner`,
+  `getRecoveryLevel`, `getEffectiveMacrosForToday`, `getMealTimingGuide`,
+  `renderProgress`, `updateStats`, `logSunlight`, `renderHealthSunlight`,
+  `renderHealthRecovery`.
+- Still shadowed (monolith copy still present): `renderFoodDiary`,
+  `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`,
+  `renderDynamicShopping`, `updateMainPagePlanner`, `generateShoppingList`,
+  `analyzeStoreRecommendations`, `parseIngredientString`. Safe to delete in
+  a future sweep.
 
 ### Modals
 
@@ -295,17 +374,37 @@ Shadowed by `window.*` shims (module overrides win, monolith copy inert):
 
 Items 1–3 complete (sessions 11–12). Remaining: long tail only.
 
-### Long tail (post-ship, not blocking)
+### Remaining distance to thin shell
 
-Lift remaining ~29K LOC main app body to reach true thin shell. Major items:
-- `renderFoodDiary` + diary helpers (~3K LOC) → `src/ui/diary.js`
-- `updateMainPagePlanner` + plan helpers (~5.5K LOC) → `src/ui/plan.js`
-- `renderDynamicShopping` + shopping UI (~2K LOC) → `src/ui/shopping.js`
-- All cross-tab helpers listed above → appropriate `src/features/` modules
-- `changeDiaryDate`, `openFoodSearch`, etc. → domain modules
-- Strip modal HTML from head (L1–2639) once `modals.mountAll()` fully covers all
+- **Now:** 27,716 LOC
+- **Target:** ~30 LOC (single `<div id="app"></div>` + `<script type="module">` + minimal head)
+- **Remaining:** ~27,686 LOC (≈99% by line count, but per-fn cost drops as
+  more cross-tab helpers move to modules — the long tail is mostly small fns).
 
-True thin shell target: `index.html` ~30 lines.
+Major next-slice candidates (rough sizing):
+- **`profileModal` HTML + inline `<script>`** (~1075 LOC) — biggest single deletable
+  chunk. Extract `nextPage`/`prevPage`/`saveProfile` controller to
+  `src/ui/modals/profile-controller.js`, then strip inline HTML.
+- **`openWeightLogModal` + weight modal subsystem** (~150 LOC) — dynamic modal
+  builder; lift to `src/ui/modals/weightLog.js`.
+- **`checkProfile` + assessment dispatch** (~300 LOC) — onboarding entry point;
+  most of its branches are already handled by modules.
+- **Food search supporting fns** (`selectFood`, `addFoodToMeal`,
+  `searchFoodsWithRemote`, `closeFoodSearch`, food-detail nutrition update, etc.)
+  — couple thousand LOC clustered around L9000–11500.
+- **Already-shadowed monolith fns** (~1000 LOC, sweep #2):
+  `renderFoodDiary`, `renderMealFoods`, `updateMacroSummary`, `changeDiaryDate`,
+  `renderDynamicShopping`, `updateMainPagePlanner`, `generateShoppingList`,
+  `analyzeStoreRecommendations`, `parseIngredientString`. All have `window.*`
+  shims pointing at modules — copies inert. Same pattern as session 15 Phase B.
+- **`swapMeal`, `viewRecipe`** + meal-rotation machinery (~1.5K LOC).
+- **`getWeeklyWeightChange`, `computeRecoverySignal`, `computeWeeklyAdjustment`**
+  (already in modules but monolith copies remain) — small batch sweep.
+- **Trial / paywall caller sites** (`subscribePro`, `dismissTopBanner` etc.) — ~500 LOC.
+- **Remaining cross-tab event handlers + hundreds of small fns.**
+
+Rough scoping: 4–6 sessions of similar volume to slice 15 reach <5K LOC. Then
+a final pass strips remaining helpers + comments + dead state.
 
 ---
 
@@ -319,6 +418,8 @@ True thin shell target: `index.html` ~30 lines.
 | Session 12 (cross-tab lifts) | 1,314 KB | 302 KB (main bundle +12 KB) |
 | Session 13 (wire dormant shims) | 1,314 KB | 303 KB (main bundle 459 KB / 112 KB) |
 | Session 14 (long-tail delete + B1 + bug fixes) | 1,183 KB | 270 KB (main bundle 460 KB / 112 KB) |
+| Session 15 (B2/B3 + dead-shim sweep + modal strip) | 1,135 KB | 258 KB (main bundle 464 KB / 113 KB) |
+| Session 15.1 (window bridge + missed shims) | 1,135 KB | 258 KB (main bundle 464 KB / 113 KB) |
 | Target (thin shell) | ~3 KB | — |
 
 ---

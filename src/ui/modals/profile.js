@@ -1,17 +1,12 @@
-// Profile modal template — lifted verbatim from index.html L1305-2325.
-//
-// Template-only lift. Onboarding logic (nextPage, prevPage, saveProfile,
-// skipDetailedAssessment, the IMMEDIATE modal check IIFE) stays in
-// monolith — the inline <script> block at L1327-1587 of the template
-// will not auto-execute via innerHTML injection, so when monolith is
-// stripped in slice 8.2 that script must be moved into a sibling
-// module and called from main.js bootstrap.
-//
-// For now (slice 8.1): ensureMounted no-ops because monolith's inline
-// HTML already exists at parse time. The lifted template is dormant.
-// Open/close fns toggle display the same way monolith does.
+// Profile modal template + mount. Template = verbatim HTML from monolith
+// L1305-2325 with the 3 embedded <script> blocks stripped — those lived
+// inside <script> tags that innerHTML never executes anyway. Their logic
+// moved to profile-controller.js (nextPage/prevPage/skipDetailedAssessment
+// + gender + motivation listeners). The cold-start IIFE is dropped — its
+// job (open modal if no profile) is already covered by checkProfile().
 
 import { ensureMounted } from './helpers.js';
+import { install as installController } from './profile-controller.js';
 
 const TEMPLATE = `
 <div class="modal" id="profileModal">
@@ -31,107 +26,6 @@ const TEMPLATE = `
 <div class="page-dot"></div>
 <div class="page-dot"></div>
 </div>
-<script>
-    (function() {
-      console.log('⚡ IMMEDIATE modal check...');
-      setTimeout(function() {
-        const saved = localStorage.getItem('user-profile');
-        console.log('💾 Profile exists?', saved ? 'YES' : 'NO');
-        let shouldOpenModal = false;
-        if (!saved) {
-          console.log('📝 No profile found');
-          shouldOpenModal = true;
-        } else {
-          try {
-            const profile = JSON.parse(saved);
-            if (!profile.weekPlan || profile.defaultBreakfast || profile.favoriteLunches) {
-              localStorage.removeItem('user-profile');
-              shouldOpenModal = true;
-            }
-          } catch (e) {
-            localStorage.removeItem('user-profile');
-            shouldOpenModal = true;
-          }
-        }
-        if (shouldOpenModal) {
-          const modal = document.getElementById('profileModal');
-          if (modal) {
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-            const noProfileMsg = document.getElementById('no-profile-message');
-            if (noProfileMsg) noProfileMsg.style.display = 'block';
-          }
-        } else {
-          const noProfileMsg = document.getElementById('no-profile-message');
-          if (noProfileMsg) noProfileMsg.style.display = 'none';
-        }
-      }, 50);
-    })();
-    let currentPage = 1;
-    window.nextPage = function(event) {
-      if (event) event.preventDefault();
-      const pages = document.querySelectorAll('.form-page');
-      if (pages.length === 0) return;
-      if (currentPage === 1) {
-        const name = document.getElementById('userName') && document.getElementById('userName').value.trim();
-        const age = parseInt(document.getElementById('userAge') && document.getElementById('userAge').value);
-        const weight = parseInt(document.getElementById('userWeight') && document.getElementById('userWeight').value);
-        if (!name) { if (typeof showLogToast === 'function') showLogToast('Enter your name'); else alert('Please enter your name'); return; }
-        if (!age || age < 13 || age > 100) { if (typeof showLogToast === 'function') showLogToast('Enter a valid age (13-100)'); else alert('Please enter a valid age'); return; }
-        if (!weight || weight < 80) { if (typeof showLogToast === 'function') showLogToast('Enter a valid weight (80+ lbs)'); else alert('Please enter a valid weight'); return; }
-      }
-      if (currentPage === 8) {
-        const checked = document.querySelectorAll('#cuisineGrid input[type="checkbox"]:checked');
-        if (checked.length < 2) { if (typeof showLogToast === 'function') showLogToast('Select at least 2 cuisines'); else alert('Please select at least 2 cuisines'); return; }
-        if (typeof saveProfile === 'function') saveProfile();
-        else setTimeout(function() { if (typeof saveProfile === 'function') saveProfile(); else alert('Error: Save function not loaded.'); }, 1000);
-        return;
-      }
-      if (currentPage >= pages.length) return;
-      pages[currentPage - 1].classList.remove('active');
-      pages[currentPage - 1].style.display = 'none';
-      currentPage++;
-      if (currentPage <= pages.length) {
-        pages[currentPage - 1].classList.add('active');
-        pages[currentPage - 1].style.display = 'block';
-        document.querySelectorAll('.page-dot').forEach((dot, idx) => { dot.classList.toggle('active', idx === currentPage - 1); });
-      }
-    };
-    window.prevPage = function() {
-      if (currentPage <= 1) return;
-      const pages = document.querySelectorAll('.form-page');
-      pages[currentPage - 1].classList.remove('active');
-      pages[currentPage - 1].style.display = 'none';
-      currentPage--;
-      pages[currentPage - 1].classList.add('active');
-      pages[currentPage - 1].style.display = 'block';
-      document.querySelectorAll('.page-dot').forEach((dot, idx) => { dot.classList.toggle('active', idx === currentPage - 1); });
-    };
-    window.skipDetailedAssessment = function() {
-      const setIf = (id, value) => { const el = document.getElementById(id); if (el && !el.value) el.value = value; };
-      const setRadio = (name, value) => { const el = document.querySelector('input[name="' + name + '"][value="' + value + '"]'); if (el) el.checked = true; };
-      setRadio('hasInjuries', 'no');
-      setIf('chronicCondition', 'none');
-      setIf('yearsTraining', '2-3years');
-      setIf('experienceLevel', 'intermediate');
-      setIf('sleepHours', '7-8');
-      setIf('sleepQuality', 'good');
-      setIf('stressLevel', 'moderate');
-      setIf('energyLevel', 'good');
-      window.__skipAssessment = true;
-      const currentActive = document.querySelector('.form-page.active');
-      if (currentActive) { currentActive.classList.remove('active'); currentActive.style.display = 'none'; }
-      const target = document.querySelector('.form-page[data-page="6"]');
-      if (target) { target.classList.add('active'); target.style.display = 'block'; }
-      document.querySelectorAll('.page-dot').forEach((dot, idx) => { dot.classList.toggle('active', idx === 5); });
-    };
-    window.saveProfile = function(event) {
-      if (event) event.preventDefault();
-      if (window.saveProfileReal) window.saveProfileReal(event);
-      else if (typeof saveProfileDirect === 'function') saveProfileDirect(event);
-      else alert('Error: Profile system not loaded. Please refresh the page.');
-    };
-    </script>
 <form id="profileForm" onsubmit="return false;">
 <div class="form-page active" data-page="1">
 <h3 style="margin-bottom: 8px; color: #0a7d5a;">Demographics &amp; Current State</h3>
@@ -280,18 +174,6 @@ const TEMPLATE = `
 </select>
 <small style="color: #94a0ad; font-size: 11px;">Irregular/absent = too much stress or undereating</small>
 </div>
-<script>
-        document.getElementById('userGender').addEventListener('change', function() {
-          const gender = this.value;
-          document.getElementById('hormonal-men').style.display = gender === 'male' ? 'block' : 'none';
-          document.getElementById('hormonal-women').style.display = gender === 'female' ? 'block' : 'none';
-        });
-        if (document.getElementById('userGender').value === 'male') {
-          document.getElementById('hormonal-men').style.display = 'block';
-        } else {
-          document.getElementById('hormonal-women').style.display = 'block';
-        }
-        </script>
 <div style="display: flex; gap: 12px;">
 <button class="btn" onclick="prevPage()" style="background: var(--text-tertiary);" type="button">Back</button>
 <button class="btn" onclick="nextPage()" style="flex: 1;" type="button">Next</button>
@@ -552,11 +434,6 @@ const TEMPLATE = `
 <span style="font-size: 12px; color: #94a0ad;">High</span>
 <output id="motivationOutput" style="font-weight: 600; color: #0a7d5a; min-width: 30px;">8</output>
 </div>
-<script>
-            document.getElementById('motivationLevel').addEventListener('input', function() {
-              document.getElementById('motivationOutput').textContent = this.value;
-            });
-          </script>
 </div>
 <div class="form-group">
 <label>Time Available for Training (per week)</label>
@@ -675,7 +552,9 @@ const TEMPLATE = `
 `;
 
 export function mount() {
-  return ensureMounted('profileModal', TEMPLATE);
+  const el = ensureMounted('profileModal', TEMPLATE);
+  installController();
+  return el;
 }
 
 export function openProfile() {

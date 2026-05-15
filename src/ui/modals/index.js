@@ -34,6 +34,7 @@ export function mountAll() {
   barcode.mount();
   imageRecognition.mount();
   photoComparison.mount();
+  profile.mount();
 }
 
 export {

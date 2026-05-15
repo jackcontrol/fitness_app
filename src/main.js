@@ -23,6 +23,16 @@ import {
 } from './ui/helpers/index.js';
 
 import * as modals from './ui/modals/index.js';
+import {
+  nextPage as profileNextPage,
+  prevPage as profilePrevPage,
+  skipDetailedAssessment as profileSkipDetailedAssessment,
+  openProfileModal,
+  closeProfileModal,
+  openProfileEdit,
+  closeProfileEditModal,
+} from './ui/modals/profile-controller.js';
+import { checkProfile } from './bootstrap/checkProfile.js';
 
 import { logSunlight, renderHealthSunlightStable, sunlightMap } from './features/sunlight.js';
 
@@ -241,6 +251,21 @@ window.renderTopBanner = renderTopBanner;
 // pass nothing. Wrap to pull from window.state / window.profile.
 window.getTrendWeight = () => progress.getTrendWeight(window.state, window.profile);
 window.renderDynamicShopping = renderDynamicShopping;
+
+// Session 16 — profileModal HTML lifted to src/ui/modals/profile.js.
+// Inline <script> logic (nextPage/prevPage/skipDetailedAssessment) lifted
+// to src/ui/modals/profile-controller.js. Wire as window.* so the
+// onclick="nextPage()" attributes in the mounted template resolve, and
+// so monolith's L16590 fillDemoData / L17696 saveProfileReal callers find
+// the same names.
+window.nextPage = profileNextPage;
+window.prevPage = profilePrevPage;
+window.skipDetailedAssessment = profileSkipDetailedAssessment;
+window.openProfileModal = openProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.openProfileEdit = openProfileEdit;
+window.closeProfileEditModal = closeProfileEditModal;
+window.checkProfile = checkProfile;
 
 // Inject nav + section DOM before DOMContentLoaded fires so monolith
 // boot() callbacks find their target elements when they run.
