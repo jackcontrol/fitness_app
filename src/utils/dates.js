@@ -42,3 +42,11 @@ export function plusDays(date, n) {
   d.setDate(d.getDate() + n);
   return d;
 }
+
+// ISO date string for Monday of the current week (Mon=1..Sun=7).
+export function getCurrentWeekKey() {
+  const d = new Date();
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d.toISOString().slice(0, 10);
+}

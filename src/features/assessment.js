@@ -108,6 +108,87 @@ export function updateHeaderWithProfile() {
   if (store2Header && profile.store2Name) store2Header.textContent = `🏬 ${profile.store2Name} List`;
 }
 
+// Dev-only: fill the profile form with realistic demo values so the
+// 47-field assessment can be quick-tested.
+export function fillDemoData() {
+  const safeSetValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  };
+  const safeCheckRadio = (name, value) => {
+    const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (el) el.checked = true;
+  };
+
+  try {
+    safeSetValue('name', 'Test User');
+    safeSetValue('age', '54');
+    safeCheckRadio('gender', 'male');
+    safeSetValue('weight', '210');
+    safeSetValue('target-weight', '190');
+    safeSetValue('height-feet', '6');
+    safeSetValue('height-inches', '0');
+    safeSetValue('body-fat', '25');
+    safeCheckRadio('goal', 'moderate_fatloss');
+    safeCheckRadio('timeline', '12_weeks');
+
+    safeCheckRadio('hormonal-health', 'declining');
+    safeCheckRadio('metabolic-status', 'normal');
+    safeCheckRadio('sleep-quality', '7-8');
+    safeCheckRadio('stress-level', 'moderate');
+    safeCheckRadio('recovery-capacity', 'moderate');
+    safeCheckRadio('injuries', 'minor');
+
+    safeCheckRadio('experience', 'intermediate');
+    safeCheckRadio('current-training-days', '3-4');
+    safeCheckRadio('training-preference', 'gym');
+    safeSetValue('current-calories', '2200');
+
+    safeCheckRadio('occupation-type', 'sedentary');
+    safeSetValue('current-steps', '5000');
+
+    safeCheckRadio('diet-history', 'occasional');
+    safeCheckRadio('food-relationship', 'healthy');
+
+    safeCheckRadio('meals-per-day', '3');
+    safeCheckRadio('meal-types', 'breakfast_lunch_dinner');
+    safeCheckRadio('cooking-time', '30-45');
+    safeCheckRadio('cooking-skill', 'intermediate');
+
+    safeCheckRadio('kitchen-equipment', 'full');
+    safeCheckRadio('diet', 'standard');
+
+    const allergens = document.querySelectorAll('#allergenGrid input[type="checkbox"]');
+    allergens.forEach(cb => { cb.checked = false; });
+
+    const cuisines = document.querySelectorAll('#cuisineGrid input[type="checkbox"]');
+    if (cuisines.length > 0) {
+      const pick = ['american', 'italian', 'mexican', 'asian', 'mediterranean'];
+      cuisines.forEach(cb => { if (pick.includes(cb.value)) cb.checked = true; });
+    }
+
+    safeSetValue('weekly-budget', '150');
+  } catch (error) {
+    console.error('fillDemoData failed:', error);
+    throw error;
+  }
+}
+
+// Risk-flag aggregator over profile self-reports. Used by selectTrainingProtocol
+// to bias toward gentler / recovery protocols.
+export function calculateRedFlagScore(profile) {
+  let score = 0;
+  if (profile.metabolicStatus === 'damaged') score += 3;
+  if (profile.gender === 'female' && profile.hormonalHealth === 'absent') score += 3;
+  if (profile.gender === 'male' && profile.hormonalHealth === 'poor') score += 2;
+  if (profile.stressLevel === 'very_high') score += 2;
+  if (profile.sleepQuality <= '3-4') score += 2;
+  if (profile.injuries === 'significant') score += 2;
+  if (profile.recoveryCapacity === 'poor') score += 1;
+  if (profile.foodRelationship === 'disordered') score += 3;
+  return score;
+}
+
 // ─── Pattern detection (v1.4 — full 47-field) ─────────────────────
 
 export function detectPatternFromProfile(profile) {

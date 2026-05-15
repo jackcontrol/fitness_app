@@ -44,6 +44,8 @@ import {
   calculateCalories,
   calculateMacros,
   updateHeaderWithProfile,
+  calculateRedFlagScore,
+  fillDemoData,
 } from './features/assessment.js';
 import {
   openQuickStartModal,
@@ -64,6 +66,8 @@ import {
   addFoodToMeal,
   addFoodToMealDirect,
   searchFoodsWithRemote,
+  showAllFoods, setActiveTab, updateFoodDetailNutrition, closeFoodDetail,
+  ensureDateEntry, saveFoodDiary, addToRecent, refreshAfterFoodLog,
 } from './ui/foodSearch.js';
 import { openWeightLogModal, saveWeightFromModal } from './ui/modals/weightLog.js';
 
@@ -78,6 +82,7 @@ import {
 import {
   hydrateCount, ensureHydrationToday, updateHydrationProgress,
   logOneGlass, undoLastGlass, resetWaterToday,
+  renderHydrationSchedule, toggleHydration,
 } from './features/hydration.js';
 import {
   nextMeal, nextRoutineAction, nextLogAction, usefulLogsLeft,
@@ -92,7 +97,8 @@ import { breakfastRecipes } from './data/breakfasts.js';
 import { lunchRecipes } from './data/lunches.js';
 import { recipes as dinnerRecipes } from './data/dinners.js';
 import { snackOptions } from './data/snacks.js';
-import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
+import { mealForSlot, recipeDbs, ingredientFor, calculateMealMacros } from './features/recipes.js';
+import { estimateMealCost } from './features/budget.js';
 import { getRecoveryLevel, getEffectiveMacrosForToday } from './features/training.js';
 import { renderHealthRecovery } from './ui/exercise.js';
 import { renderCustomRoutineItems } from './ui/routine.js';
@@ -107,6 +113,7 @@ import { closeById } from './ui/modals/helpers.js';
 import { mountShell } from './ui/shell.js';
 import { installSwitchTab, switchTab } from './ui/render.js';
 import { appState, appProfile, saveAll, saveQuiet, saveProfileQuiet } from './state/accessors.js';
+import { getCurrentWeekKey, todayISO as _todayISO } from './utils/dates.js';
 import { toast } from './ui/helpers/toast.js';
 import { esc } from './utils/html.js';
 import { $, qa, byId } from './utils/dom.js';
@@ -114,6 +121,15 @@ import { money } from './utils/format.js';
 import { TAXONOMY } from './data/taxonomy.js';
 
 import { renderTopBanner } from './ui/topbanner.js';
+import {
+  offLoadPersistentCache, offSavePersistentCache, normalizeOFFProduct,
+  offLookupBarcode, offSearchByText, offSearchByTextDebounced,
+  logFoodByBarcode, offCacheStats, offClearCache,
+} from './api/openFoodFacts.js';
+import {
+  renderMealPlanner, swapBreakfastForDay, closeBreakfastSwapModal,
+  recalculateRotation, renderBudgetTracker, renderBudgetOptimizationPanel,
+} from './ui/mealPlanner.js';
 
 window.Chart = Chart;
 window.Quagga = Quagga;
@@ -148,6 +164,98 @@ window.checkTrialExpiry = trial.checkTrialExpiry;
 window.ensureTrialState = trial.ensureTrialState;
 window.getTrialDaysLeft = trial.getTrialDaysLeft;
 window.isAdaptiveUnlocked = trial.isAdaptiveUnlocked;
+window.saveTrialState = trial.saveTrialState;
+window.subscribePro = trial.subscribePro;
+window.updateTrialBanner = trial.updateTrialBanner;
+window.showPaywallModal = modals.paywall.showPaywallModal;
+
+// Batch B — weight subsystem.
+window.getCurrentWeekKey = getCurrentWeekKey;
+window.logWeight = (weightLb, dateISO) => {
+  const s = window.state || loadState();
+  if (!window.state) window.state = s;
+  progress.ensureAdaptiveState(s);
+  progress.logWeight(s, weightLb, dateISO);
+  if (typeof window.saveState === 'function') window.saveState();
+  if (window.profile) {
+    window.profile.weight = parseFloat(weightLb);
+    try { localStorage.setItem('user-profile', JSON.stringify(window.profile)); } catch (e) {}
+  }
+  if (typeof window.maybeRecalibrate === 'function') window.maybeRecalibrate();
+};
+window.get7DayAverage = () => {
+  const s = window.state || loadState();
+  return progress.get7DayAverage(s);
+};
+window.getWeeklyWeightChange = () => {
+  const s = window.state || loadState();
+  return progress.getWeeklyWeightChange(s);
+};
+window.projectGoalDate = () => {
+  const s = window.state || loadState();
+  const p = window.profile;
+  return progress.projectGoalDate(s, p);
+};
+
+// Batch C — hydration rendering.
+window.renderHydrationSchedule = renderHydrationSchedule;
+window.toggleHydration = toggleHydration;
+
+// Batch D — meal-macro + cost helpers.
+window.calculateMealMacros = (meal, mealType) => calculateMealMacros(meal, mealType, window.profile);
+window.estimateMealCost = estimateMealCost;
+
+// Batch F — adaptive recalibration.
+window.maybeRecalibrate = () => {
+  const s = window.state || loadState();
+  if (!window.state) window.state = s;
+  const p = window.profile;
+  const adj = progress.maybeRecalibrate(s, p);
+  if (typeof window.saveState === 'function') window.saveState();
+  if (p) { try { localStorage.setItem('user-profile', JSON.stringify(p)); } catch (e) {} }
+  if (adj) {
+    if (typeof window.updateMacroSummary === 'function') {
+      try { window.updateMacroSummary(); } catch (e) {}
+    }
+    if (typeof window.updateMainPagePlanner === 'function') {
+      try { window.updateMainPagePlanner(); } catch (e) {}
+    }
+  }
+  return adj;
+};
+
+// Batch I — assessment helpers.
+window.calculateRedFlagScore = calculateRedFlagScore;
+window.fillDemoData = fillDemoData;
+
+// Batch H — Open Food Facts API.
+window.offLoadPersistentCache = offLoadPersistentCache;
+window.offSavePersistentCache = offSavePersistentCache;
+window.normalizeOFFProduct = normalizeOFFProduct;
+window.offLookupBarcode = offLookupBarcode;
+window.offSearchByText = offSearchByText;
+window.offSearchByTextDebounced = offSearchByTextDebounced;
+window.logFoodByBarcode = logFoodByBarcode;
+window.offCacheStats = offCacheStats;
+window.offClearCache = offClearCache;
+
+// Batch G — food-search support fns.
+window.showAllFoods = showAllFoods;
+window.setActiveTab = setActiveTab;
+window.updateFoodDetailNutrition = updateFoodDetailNutrition;
+window.closeFoodDetail = closeFoodDetail;
+window.ensureDateEntry = ensureDateEntry;
+window.saveFoodDiary = saveFoodDiary;
+window.addToRecent = addToRecent;
+window.refreshAfterFoodLog = refreshAfterFoodLog;
+
+// Batch E — meal-planner + budget render cluster.
+window.renderMealPlanner = renderMealPlanner;
+window.swapBreakfastForDay = swapBreakfastForDay;
+window.closeBreakfastSwapModal = closeBreakfastSwapModal;
+window.recalculateRotation = recalculateRotation;
+window.renderBudgetTracker = renderBudgetTracker;
+window.renderBudgetOptimizationPanel = renderBudgetOptimizationPanel;
 window.getTodaysIntensityRecommendation = training.getTodaysIntensityRecommendation;
 window.getHydrationSchedule = routine.getHydrationSchedule;
 // getDayData mutates state[category][dayKey] in place. Read monolith's

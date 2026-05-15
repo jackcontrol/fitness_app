@@ -139,6 +139,91 @@ export function projectGoalDate(state, profile) {
   return new Date(Date.now() + weeks * 7 * 86400000);
 }
 
+// Adherence: meals logged vs planned, over the last `days` days.
+export function getAdherenceScore(state, days = 7) {
+  ensureAdaptiveState(state);
+  const entries = Object.entries(state.adherenceLog || {});
+  if (entries.length === 0) return null;
+  const cutoff = toLocalISO(new Date(Date.now() - days * 86400000));
+  const recent = entries.filter(([d]) => d >= cutoff);
+  if (recent.length === 0) return null;
+  let planned = 0;
+  let logged = 0;
+  recent.forEach(([, v]) => {
+    planned += (v && v.plannedMeals) || 0;
+    logged += (v && v.loggedMeals) || 0;
+  });
+  if (planned === 0) return null;
+  return Math.round((logged / planned) * 100);
+}
+
+// Weekly calorie/macro recalibration. Mutates profile + state.macroAdjustments.
+// Caller persists state + profile + refreshes UI.
+export function maybeRecalibrate(state, profile) {
+  ensureAdaptiveState(state);
+  if (!profile || !profile.targetCalories) return null;
+  if (state.weightLog.length < 2) return null;
+  const daysSinceFirst = daysBetween(state.weightLog[0].date, todayISO());
+  if (daysSinceFirst < 7) return null;
+  if (state.lastRecalibration) {
+    const daysSinceLast = daysBetween(state.lastRecalibration, todayISO());
+    if (daysSinceLast < 7) return null;
+  }
+  const adherence = getAdherenceScore(state, 7);
+  if (adherence !== null && adherence < 50) return null;
+
+  const weeklyChange = getWeeklyWeightChange(state);
+  const goal = profile.goal || 'maintain';
+  let expectedRate = 0;
+  if (goal.includes('loss') || goal.includes('cut') || goal.includes('shred')) {
+    if (goal.includes('aggressive')) expectedRate = -1.5;
+    else if (goal.includes('moderate')) expectedRate = -1.0;
+    else expectedRate = -0.5;
+  } else if (goal.includes('gain') || goal.includes('bulk') || goal.includes('muscle')) {
+    expectedRate = 0.5;
+  }
+
+  const deviation = weeklyChange - expectedRate;
+  if (Math.abs(deviation) < 0.4) {
+    state.lastRecalibration = todayISO();
+    return null;
+  }
+
+  const calAdjustment = Math.round(-deviation * 500);
+  const clampedAdj = Math.max(-300, Math.min(300, calAdjustment));
+  const oldCal = profile.targetCalories;
+  const newCal = oldCal + clampedAdj;
+
+  const proteinCal = (profile.protein || 0) * 4;
+  const remainingCal = newCal - proteinCal;
+  const oldCarbCal = (profile.carbs || 0) * 4;
+  const oldFatCal = (profile.fat || 0) * 9;
+  const oldNonProteinCal = oldCarbCal + oldFatCal;
+  const carbRatio = oldNonProteinCal > 0 ? oldCarbCal / oldNonProteinCal : 0.55;
+  const newCarbs = Math.round((remainingCal * carbRatio) / 4);
+  const newFat = Math.round((remainingCal * (1 - carbRatio)) / 9);
+
+  const adjustment = {
+    date: todayISO(),
+    oldCal, newCal,
+    oldP: profile.protein, newP: profile.protein,
+    oldC: profile.carbs, newC: newCarbs,
+    oldF: profile.fat, newF: newFat,
+    weeklyChange,
+    expectedRate,
+    reason: deviation > 0
+      ? `Weight trending ${weeklyChange > 0 ? '+' : ''}${weeklyChange} lb/wk (target ${expectedRate}). Cutting ${Math.abs(clampedAdj)} cal.`
+      : `Weight trending ${weeklyChange > 0 ? '+' : ''}${weeklyChange} lb/wk (target ${expectedRate}). Adding ${Math.abs(clampedAdj)} cal.`,
+  };
+
+  profile.targetCalories = newCal;
+  profile.carbs = newCarbs;
+  profile.fat = newFat;
+  state.macroAdjustments.push(adjustment);
+  state.lastRecalibration = todayISO();
+  return adjustment;
+}
+
 // Consecutive days with at least one food entry ending today (or yesterday if
 // today has nothing yet — don't break a streak at 7 AM).
 export function getLoggingStreak() {

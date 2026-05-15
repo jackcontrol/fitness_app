@@ -230,6 +230,98 @@ export function addFoodToMealDirect(mealId, foodId, servingIndex, quantity) {
   return true;
 }
 
+export function ensureDateEntry(dateStr) {
+  const fd = window.foodDiary;
+  if (!fd) return null;
+  if (!fd.entries[dateStr]) {
+    fd.entries[dateStr] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+  }
+  return fd.entries[dateStr];
+}
+
+export function saveFoodDiary() {
+  const fd = window.foodDiary;
+  if (!fd) return;
+  const payload = JSON.stringify({
+    entries: fd.entries,
+    recentFoods: fd.recentFoods,
+    favoriteFoods: fd.favoriteFoods,
+  });
+  if (typeof window.safeLocalStorageSet === 'function') {
+    window.safeLocalStorageSet('food-diary', payload);
+  } else {
+    try { localStorage.setItem('food-diary', payload); } catch (e) {}
+  }
+}
+
+export function addToRecent(foodId) {
+  const fd = window.foodDiary;
+  if (!fd) return;
+  fd.recentFoods = fd.recentFoods.filter(id => id !== foodId);
+  fd.recentFoods.unshift(foodId);
+  if (fd.recentFoods.length > 20) fd.recentFoods = fd.recentFoods.slice(0, 20);
+}
+
+export function refreshAfterFoodLog() {
+  if (typeof window.renderFoodDiary === 'function') {
+    try { window.renderFoodDiary(); } catch (e) {}
+  }
+  if (typeof window.updateMainPagePlanner === 'function') {
+    try { window.updateMainPagePlanner(); } catch (e) {}
+  }
+  if (typeof window.updateMacroSummary === 'function') {
+    try { window.updateMacroSummary(); } catch (e) {}
+  }
+  if (typeof window.renderPlanNextSteps === 'function') {
+    try { window.renderPlanNextSteps(); } catch (e) {}
+  }
+}
+
+export function showAllFoods() {
+  const foodDatabase = window.foodDatabase || {};
+  const results = Object.entries(foodDatabase);
+  renderSearchResults(results);
+  setActiveTab('tab-all');
+  const qa = document.getElementById('quick-add-section');
+  if (qa) qa.style.display = 'none';
+}
+
+export function setActiveTab(tabId) {
+  ['tab-all', 'tab-recent', 'tab-favorites', 'tab-quick'].forEach(id => {
+    const tab = document.getElementById(id);
+    if (tab) {
+      if (id === tabId) {
+        tab.style.background = '#0a7d5a';
+        tab.style.color = 'white';
+      } else {
+        tab.style.background = '#e8e2d6';
+        tab.style.color = '#495057';
+      }
+    }
+  });
+}
+
+export function updateFoodDetailNutrition() {
+  const foodDiary = window.foodDiary;
+  const food = foodDiary && foodDiary.currentFood;
+  if (!food) return;
+  const quantity = parseFloat(document.getElementById('num-servings').value) || 1;
+  const calories = Math.round((food.calories || 0) * quantity);
+  const protein = Math.round((food.protein || 0) * quantity);
+  const carbs = Math.round((food.carbs || 0) * quantity);
+  const fat = Math.round((food.fat || 0) * quantity);
+  document.getElementById('food-detail-calories').textContent = calories;
+  document.getElementById('food-detail-protein').textContent = protein + 'g';
+  document.getElementById('food-detail-carbs').textContent = carbs + 'g';
+  document.getElementById('food-detail-fat').textContent = fat + 'g';
+}
+
+export function closeFoodDetail() {
+  const m = document.getElementById('foodDetailModal');
+  if (m) m.style.display = 'none';
+  if (window.foodDiary) window.foodDiary.currentFood = null;
+}
+
 export async function searchFoodsWithRemote() {
   searchFoods();
 

@@ -204,6 +204,61 @@ Picks up where last session ended. Refactor plan canonical at
   4 bare-name call sites in remaining monolith rewritten to `window.*`.
   Committed `f8f9448 Session 17`.
 
+- **Session 19** — 9-batch aggressive sweep. 24,071 → 22,327 (−1,744 / −7.2%).
+  - **A** (-222): Lifted `subscribePro` + `updateTrialBanner` → `src/features/trial.js`.
+    Wired `window.showPaywallModal` = `modals.paywall.showPaywallModal`. Deleted
+    monolith trial cluster (L7490–7690) + `dismissTopBanner` (already lifted to
+    `src/ui/topbanner.js`).
+  - **B** (-218): Weight subsystem. Added `getCurrentWeekKey` to
+    `src/utils/dates.js`. Wrapped `window.logWeight` / `get7DayAverage` /
+    `getWeeklyWeightChange` / `projectGoalDate` over `progress.*`. Deleted
+    monolith bodies + dead-duplicate `computeWeeklyAdjustment` /
+    `computeRecoverySignal` / `dismissWeeklyAdjustment` / `dismissRecoveryBanner`
+    (already in topbanner.js).
+  - **C** (-73): Added `renderHydrationSchedule` + `toggleHydration` →
+    `src/features/hydration.js`. Used `appState()` / `appProfile()` accessors +
+    `getHydrationSchedule` import from routine.
+  - **D** (-67): `calculateMealMacros` → `src/features/recipes.js` (signature
+    takes profile). `estimateMealCost` → `src/features/budget.js`.
+  - **E** (-332): New `src/ui/mealPlanner.js` with `renderMealPlanner`,
+    `swapBreakfastForDay`, `closeBreakfastSwapModal`, `recalculateRotation`,
+    `renderBudgetTracker`, `renderBudgetOptimizationPanel`. Internal deps
+    (`calculateWeeklyBudget`, `distributeRemainingMacros`,
+    `calculateMealRotation`, `runBudgetOptimization`, `applySuggestion`,
+    `displayStarRating`, `getRecipeRating`, `openRatingModal`,
+    `openBreakfastSwapForDay`) still routed via `window.*` (deferred to S20).
+  - **F** (-101): `maybeRecalibrate` → `src/features/progress.js`. Added
+    `getAdherenceScore(state, days)` sibling. Window wrapper persists state +
+    profile + triggers `updateMacroSummary` / `updateMainPagePlanner` UI
+    refresh on adjustment.
+  - **G** (-95): Food-search support cohort → `src/ui/foodSearch.js`.
+    `ensureDateEntry`, `saveFoodDiary`, `addToRecent`, `refreshAfterFoodLog`,
+    `showAllFoods`, `setActiveTab`, `updateFoodDetailNutrition`,
+    `closeFoodDetail` — all operate on `window.foodDiary` bridge.
+  - **H** (-373): New `src/api/openFoodFacts.js`. Imports `OFF_CONFIG` from
+    `src/data/api-config.js`. Exports `offLoadPersistentCache`,
+    `offSavePersistentCache`, `normalizeOFFProduct`, `offLookupBarcode`,
+    `offSearchByText`, `offSearchByTextDebounced`, `logFoodByBarcode`,
+    `offCacheStats`, `offClearCache`. Cache state module-scoped (Maps).
+    Deleted monolith block L7628–8000.
+  - **I.1** (-147): Plain-deleted `/* DEAD CODE */` comment block containing
+    `matchProtocol_DEPRECATED` (L16141–16287).
+  - **I.2** (-13): `calculateRedFlagScore` → `src/features/assessment.js`.
+  - **I.3** (-125): `fillDemoData` → `src/features/assessment.js` (DOM-only
+    form filler).
+  - **Deferred to S20**: rest of assessment cohort (`selectTrainingProtocol`
+    540 LOC, `getTrainingSchedule` 460, `showResults` 372, `matchProtocol`
+    + downstream) — all reference monolith `ELITE_PROTOCOL_DATABASE` const
+    duplicate (1,381 LOC, already lifted to `src/data/protocols.js`). Lift
+    + window.ELITE_PROTOCOL_DATABASE bridge will unlock removing the dup.
+  - Build green between each batch. **Browser smoke deferred per
+    aggressive-sweep policy — required before commit.**
+  - Build: main bundle 595 KB / 147 KB gzip; dist index.html 876 KB / 200 KB
+    gzip.
+  - 5 new modules added: `src/ui/mealPlanner.js`,
+    `src/api/openFoodFacts.js` (the rest extend existing modules).
+  - ~25 new window shims wired in `src/main.js`.
+
 - **Session 18** — Food search + recipe + weight log + swap cluster.
   24,840 → 24,071 (-769). New `src/ui/foodSearch.js` (9 fns: closeFoodSearch,
   searchFoods, renderSearchResults, selectFood, parseServing, servingRatio,
@@ -346,9 +401,9 @@ src/
 
 ## What's still in the monolith
 
-### index.html current state (session 18, uncommitted)
+### index.html current state (session 19, uncommitted)
 
-- **24,071 lines** (was 27,716 after 15.1, 40,265 original — net −16,194 / −40%)
+- **22,327 lines** (was 24,071 after S18, 40,265 original — net −17,938 / −44.5%)
 - L1–~1280: head + CSS + manifest links
 - L~1280–~1620: small inline modal stubs + nav styles + `<div id="app"></div>`
 - L~1620–24,069: main app JS body (~22K LOC)
@@ -479,6 +534,7 @@ sessions strip remaining modal HTML + collapse head → ~30 LOC.
 | Session 16 (profileModal lift) | 1,045 KB | 241 KB (main bundle 510 KB / 124 KB) |
 | Session 17 (profile region finish) | ~990 KB | ~228 KB (assessment + quickStart modules added) |
 | Session 18 (foodSearch + recipe + weightLog + swap) | ~1,046 KB | ~242 KB (4 module surfaces extended/new) |
+| Session 19 (9-batch sweep) | ~876 KB | ~200 KB (main bundle 595 KB / 147 KB) |
 | Target (thin shell) | ~3 KB | — |
 
 ---
