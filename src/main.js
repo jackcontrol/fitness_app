@@ -33,6 +33,27 @@ import {
   closeProfileEditModal,
 } from './ui/modals/profile-controller.js';
 import { checkProfile } from './bootstrap/checkProfile.js';
+import {
+  submitProfileAssessment,
+  detectPatternFromProfile,
+  generateOptimalWeek,
+  rehydrateMealMethods,
+  calculateBMR,
+  getActivityMultiplier,
+  calculateHydration,
+  calculateCalories,
+  calculateMacros,
+  updateHeaderWithProfile,
+} from './features/assessment.js';
+import {
+  openQuickStartModal,
+  qsPick,
+  commitQuickStart,
+  browseAnonymously,
+  openQuickGoalModal,
+  selectQuickGoalPace,
+  saveQuickGoal,
+} from './ui/modals/quickStart.js';
 
 import { logSunlight, renderHealthSunlightStable, sunlightMap } from './features/sunlight.js';
 
@@ -53,7 +74,12 @@ import {
   purchaseCost, weeklyCost, pantryHas, normalizeItems,
   buildItemsFromWeekPlan, shoppingItems,
   generateShoppingList, parseIngredientString, analyzeStoreRecommendations,
+  calculateWeeklyIngredients,
 } from './features/shopping.js';
+import { breakfastRecipes } from './data/breakfasts.js';
+import { lunchRecipes } from './data/lunches.js';
+import { recipes as dinnerRecipes } from './data/dinners.js';
+import { snackOptions } from './data/snacks.js';
 import { mealForSlot, recipeDbs, ingredientFor } from './features/recipes.js';
 import { getRecoveryLevel, getEffectiveMacrosForToday } from './features/training.js';
 import { renderHealthRecovery } from './ui/exercise.js';
@@ -266,6 +292,43 @@ window.closeProfileModal = closeProfileModal;
 window.openProfileEdit = openProfileEdit;
 window.closeProfileEditModal = closeProfileEditModal;
 window.checkProfile = checkProfile;
+
+// Session 17 — assessment + quick-modal cluster lifted from monolith.
+// `window.saveProfile` is reassigned here (was state-persist via Sorrel
+// namespace, never set on window). After this line, `window.saveProfile`
+// is the 47-field form-submit handler invoked by profile modal's submit
+// button (onclick="saveProfile(event)").
+window.saveProfile = submitProfileAssessment;
+window.saveProfileReal = submitProfileAssessment;
+window.detectPatternFromProfile = detectPatternFromProfile;
+window.generateOptimalWeek = generateOptimalWeek;
+window.rehydrateMealMethods = rehydrateMealMethods;
+window.calculateBMR = calculateBMR;
+window.getActivityMultiplier = getActivityMultiplier;
+window.calculateHydration = calculateHydration;
+window.calculateCalories = calculateCalories;
+window.calculateMacros = calculateMacros;
+window.updateHeaderWithProfile = updateHeaderWithProfile;
+window.openQuickStartModal = openQuickStartModal;
+window.qsPick = qsPick;
+window.commitQuickStart = commitQuickStart;
+window.browseAnonymously = browseAnonymously;
+window.openQuickGoalModal = openQuickGoalModal;
+window.selectQuickGoalPace = selectQuickGoalPace;
+window.saveQuickGoal = saveQuickGoal;
+// saveState + todayISO needed by lifted quick-goal flow.
+// calculateMealMacros still in monolith — generateOptimalWeek reaches it via window.
+// calculateWeeklyIngredients + recipe DBs lifted from data modules, shimmed for assessment.js.
+window.saveState = saveState;
+window.calculateWeeklyIngredients = calculateWeeklyIngredients;
+window.breakfastRecipes = breakfastRecipes;
+window.lunchRecipes = lunchRecipes;
+window.recipes = dinnerRecipes;
+window.snackOptions = snackOptions;
+window.todayISO = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+};
 
 // Inject nav + section DOM before DOMContentLoaded fires so monolith
 // boot() callbacks find their target elements when they run.
