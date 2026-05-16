@@ -1,0 +1,14 @@
+{
+  "name": "Sorrel",
+  "short_name": "Sorrel",
+  "description": "AI-powered nutrition and fitness planner",
+  "start_url": "/fitness_app/",
+  "scope": "/fitness_app/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f7942",
+  "icons": [
+    { "src": "/fitness_app/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/fitness_app/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

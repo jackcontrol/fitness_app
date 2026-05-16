@@ -1,0 +1,1327 @@
+/* Sorrel styles — extracted from index.html. */
+/* Original blocks: 20-1300 (main), 2616-2638 (nav), 27189-27199 + 27203-27205 (patches). */
+
+/* ─── Main ─── */
+* { 
+  box-sizing: border-box; 
+  -webkit-tap-highlight-color: transparent; 
+  margin: 0;
+  padding: 0;
+}
+
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-app, #f7f5f1);
+  color: var(--text-primary, #1a2332);
+  padding: 12px;
+  padding-bottom: 80px;
+  max-width: 600px;
+  margin: 0 auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern', 'liga';
+  letter-spacing: -0.005em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Tabular numbers for data — calories, weights, macros never jitter.        */
+/* Applied via:                                                               */
+/*  1. Explicit utility classes (.tabular-nums)                              */
+/*  2. data attribute (data-tabular)                                         */
+/*  3. Semantic ID patterns — anything that ends in -calories/-cals/-total/  */
+/*     -calories-remaining/-percent or contains common changing-number IDs.  */
+/* This catches the entire app's live data displays without touching each    */
+/* inline element.                                                           */
+.tabular-nums,
+[data-tabular],
+[id$="-calories"],
+[id$="-cals"],
+[id$="-cal"],
+[id$="-total"],
+[id$="-totals"],
+[id$="-percent"],
+[id$="-percentage"],
+[id$="-count"],
+[id$="-remaining"],
+[id$="-burned"],
+[id$="-streak"],
+[id$="-adherence"],
+[id$="-grams"],
+[id$="-protein"],
+[id$="-carbs"],
+[id$="-fat"],
+[id$="-volume"],
+[id^="weight-"],
+[id^="cal-"],
+[id^="protein-"],
+[id^="carbs-"],
+[id^="fat-"],
+[id^="macro-"],
+[id^="weekly-"],
+[id^="avg-"],
+[id^="total-"],
+[id^="logged-"],
+[id^="diary-"],
+.meal-slot-cals,
+.calorie-ring-number,
+.snapshot-tile-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Headings get tighter tracking for a premium feel */
+h1, h2, h3, .heading {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* ════════════════════════════════════════════════════════════════════════ */
+/* VISUAL IDENTITY — v1.2                                                    */
+/*                                                                            */
+/* Hero color: deep emerald green. Differentiates from the purple/blue       */
+/* incumbents in the nutrition category, signals vitality + natural health,  */
+/* and stays striking on dark backgrounds.                                   */
+/*                                                                            */
+/* Surfaces: warm off-white in light mode, warm slate in dark mode. Slight   */
+/* warmth keeps the app from feeling clinical.                               */
+/*                                                                            */
+/* Energy accent: warm amber for streaks/wins/celebrations. Used sparingly.  */
+/*                                                                            */
+/* ════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Surfaces — warm off-white instead of clinical pure white */
+  --bg-app:           #f7f5f1;  /* page background — bone */
+  --bg-card:          #ffffff;  /* card / surface background */
+  --bg-elevated:      #faf8f3;  /* slightly raised surfaces (snapshot tiles) */
+  --bg-input:         #ffffff;  /* form inputs */
+  --bg-muted:         #f4f1ec;  /* subtle wash backgrounds */
+  
+  /* Text — warm-leaning slate instead of cool gray */
+  --text-primary:     #1a2332;  /* primary text — deep ink */
+  --text-secondary:   #5a6573;  /* secondary text */
+  --text-tertiary:    #94a0ad;  /* tertiary / placeholder text */
+  --text-on-accent:   #ffffff;  /* text on emerald/colored backgrounds */
+  
+  /* Borders — softer warm gray */
+  --border-subtle:    #e8e2d6;  /* card borders, dividers */
+  --border-input:     #d8d2c4;  /* input borders */
+  
+  /* Shadows — softer, less heavy */
+  --shadow-card:      0 1px 3px rgba(26,35,50,0.06);
+  --shadow-elevated:  0 4px 16px rgba(26,35,50,0.10);
+  
+  /* HERO COLOR — deep emerald. The signature. */
+  --accent-primary:   #0a7d5a;  /* deep emerald — primary brand */
+  --accent-secondary: #10b981;  /* lighter emerald — gradient end / hover */
+  --accent-soft:      #d1f0e3;  /* tinted background — emerald-on-surface */
+  --accent-deep:      #064e3b;  /* deepest emerald — for dark accents on light */
+  --accent-gradient:  linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);  /* primary CTA gradient — used on every primary action button for visual consistency. v1.4: restored after self-referencing definition broke every gradient button (caused white text on bone bg in light mode). */
+  
+  /* ENERGY ACCENT — warm amber. Streaks/celebrations only. */
+  --energy:           #f59e0b;  /* warm amber */
+  --energy-soft:      #fef3c7;  /* tinted amber background */
+  
+  /* Semantic colors — calibrated to feel intentional alongside emerald */
+  --success:          #0a7d5a;  /* same as accent — wins ARE the emerald */
+  --warning:          #d97706;  /* burnt orange */
+  --danger:           #dc2626;  /* clear red */
+  
+  /* Typography size tokens — 5 sizes, used everywhere.
+     Helps the brain pattern-match across screens. Inline font-size styles
+     should converge on these. */
+  --font-xs:    11px;  /* labels, captions, micro-text */
+  --font-sm:    13px;  /* body small, secondary text */
+  --font-base:  15px;  /* default body / primary readable */
+  --font-lg:    18px;  /* card headers, callouts */
+  --font-xl:    24px;  /* page heroes, big numbers */
+  --info:             #0891b2;  /* deep teal */
+}
+
+
+.header {
+  background: linear-gradient(135deg, #064e3b 0%, #0a7d5a 60%, #10b981 100%);
+  color: #ffffff;
+  padding: 22px 20px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(10, 125, 90, 0.18);
+}
+
+.header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+
+.header p {
+  font-size: 13px;
+  opacity: 0.92;
+  letter-spacing: 0.01em;
+}
+
+/* Profile Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 9999;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  color: #0a7d5a;
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+
+.modal-content p {
+  color: #5a6573;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.form-page {
+  display: none !important;
+}
+
+.form-page.active {
+  display: block !important;
+}
+
+.page-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.page-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  transition: all 0.3s;
+}
+
+.page-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: #0a7d5a;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1a2332;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+  font-family: inherit;
+  /* v1.4: explicit color + background so inputs never inherit white-on-white
+     from a parent container that sets color:white inline (e.g., gradient hero
+     cards). Both vars switch automatically in dark mode. */
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #0a7d5a;
+}
+
+.form-group small {
+  display: block;
+  color: #5a6573;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.radio-option:hover {
+  border-color: #0a7d5a;
+  background: #e7f5ee;
+}
+
+.radio-option input[type="radio"] {
+  margin-right: 12px;
+  margin-top: 2px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.radio-option.selected {
+  border-color: #0a7d5a;
+  background: #e7f5ee;
+}
+
+.radio-label {
+  flex: 1;
+}
+
+.radio-label strong {
+  display: block;
+  color: #1a2332;
+  margin-bottom: 4px;
+}
+
+.radio-label small {
+  color: #5a6573;
+  line-height: 1.4;
+}
+
+.cuisine-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cuisine-option {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cuisine-option:hover {
+  border-color: #0a7d5a;
+  background: #e7f5ee;
+}
+
+.cuisine-option input[type="checkbox"] {
+  margin-right: 8px;
+  width: 20px;
+  height: 20px;
+}
+
+.cuisine-option.selected {
+  border-color: #0a7d5a;
+  background: #e7f5ee;
+}
+
+.btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent-gradient);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  margin-top: 24px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 4px rgba(10,125,90,0.18);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(10,125,90,0.25);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(10,125,90,0.15);
+}
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-muted);
+  box-shadow: 0 1px 3px rgba(26,35,50,0.06);
+}
+
+/* ════════════════════════════════════════════════════════════════════════ */
+/* MEAL SLOT — signature visual element                                      */
+/*                                                                            */
+/* The thin emerald rule + emoji prefix is the brand's identifying mark.     */
+/* It appears at the top of every meal slot, replacing the rainbow-gradient  */
+/* headers. One ownable visual cue, systematized across the diary.           */
+/* ════════════════════════════════════════════════════════════════════════ */
+.meal-slot {
+  margin-bottom: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.meal-slot:hover {
+  border-color: var(--accent-primary);
+}
+
+.meal-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  position: relative;
+}
+
+/* Signature mark: thin 3px emerald rule capped with a filled dot.           */
+/* Pure CSS, no images. Renders identically light or dark.                   */
+.meal-slot-rule {
+  width: 18px;
+  height: 3px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  position: relative;
+  flex-shrink: 0;
+}
+.meal-slot-rule::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+.meal-slot-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.meal-slot-cals {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.meal-slot-foods {
+  background: var(--bg-card);
+  min-height: 50px;
+}
+
+.meal-slot-empty {
+  padding: 14px 16px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.meal-slot-add {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: var(--accent-primary);
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background-color 0.15s ease;
+}
+
+.meal-slot-add:hover {
+  background: var(--accent-soft);
+}
+
+.btn-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-group .btn {
+  margin-top: 0;
+}
+
+.alert {
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #856404;
+}
+
+.alert-danger {
+  background: #f8d7da;
+  border-color: #dc2626;
+  color: #721c24;
+}
+
+.alert-success {
+  background: #d4edda;
+  border-color: #0a7d5a;
+  color: #155724;
+}
+
+.alert-info {
+  background: #d1ecf1;
+  border-color: #0891b2;
+  color: #0c5460;
+}
+
+.pattern-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+.pattern-a { background: #d4edda; color: #155724; }
+.pattern-b { background: #fef3c7; color: #856404; }
+.pattern-c { background: #f8d7da; color: #721c24; }
+
+.profile-summary {
+  background: #e7f5ee;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 20px;
+  border-left: 4px solid #0a7d5a;
+}
+
+.profile-summary h3 {
+  color: #0a7d5a;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.profile-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.profile-stat:last-child {
+  border-bottom: none;
+}
+
+.profile-stat-label {
+  color: #5a6573;
+  font-weight: 500;
+}
+
+.profile-stat-value {
+  color: #1a2332;
+  font-weight: 600;
+}
+
+/* Navigation */
+.nav { 
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  padding: 4px;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Show scrollbar on desktop */
+.nav::-webkit-scrollbar {
+  height: 6px;
+}
+
+.nav::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  background: #0a7d5a;
+  border-radius: 3px;
+}
+
+.nav::-webkit-scrollbar-thumb:hover {
+  background: #075e44;
+}
+
+/* For Firefox */
+.nav {
+  scrollbar-width: thin;
+  scrollbar-color: #0a7d5a #f1f1f1;
+}
+
+.nav button { 
+  flex: 1 1 0;
+  padding: 12px 6px;
+  min-height: 48px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.nav button.active { 
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.section { 
+  display: none;
+}
+
+.section.active { 
+  display: block;
+}
+
+.card {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Card headers carry the signature emerald rule + dot in front of the title.  */
+/* This is the most-repeated visual element in the app — every section card   */
+/* shows it. Cheap to render, ownable as identity.                            */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 14px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  position: relative;
+}
+
+.card-header::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  margin-right: 10px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-success { 
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-warning { 
+  background: #fef3c7;
+  color: #856404;
+}
+
+.check-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f4f1ec;
+  border-radius: 8px;
+  border-left: 4px solid #e0e0e0;
+  transition: all 0.3s;
+}
+
+.check-item.checked {
+  background: #d4edda;
+  border-left-color: #0a7d5a;
+}
+
+.check-item input[type="checkbox"] {
+  margin-right: 12px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.check-item label {
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+
+.time-badge {
+  display: inline-block;
+  background: #0a7d5a;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.macro {
+  font-size: 12px;
+  color: #5a6573;
+  margin-top: 4px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 16px;
+  background: #f4f1ec;
+  border-radius: 8px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #5a6573;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0a7d5a;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0a7d5a 0%, #10b981 100%);
+  transition: width 0.3s;
+}
+
+.store-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f4f1ec;
+  border-radius: 6px;
+}
+
+.store-toggle-track {
+  flex: 1;
+  height: 32px;
+  background: linear-gradient(90deg, #0a7d5a 0%, #0a7d5a 50%, #0a7d5a 50%, #0a7d5a 100%);
+  border-radius: 16px;
+  position: relative;
+  cursor: pointer;
+  border: 2px solid #e0e0e0;
+}
+
+.store-toggle-handle {
+  position: absolute;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: left 0.3s ease;
+}
+
+.store-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6573;
+  white-space: nowrap;
+}
+
+.store-1 { color: #0a7d5a; }
+.store-2 { color: #0a7d5a; }
+
+.store-summary {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.store-summary-card {
+  flex: 1;
+  padding: 12px;
+  background: #f4f1ec;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.store-summary-card.store1 {
+  border-left-color: #0a7d5a;
+}
+
+.store-summary-card.store2 {
+  border-left-color: #0a7d5a;
+}
+
+.store-summary-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.store-summary-items {
+  font-size: 12px;
+  color: #5a6573;
+}
+
+.store-list-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.store-list {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+}
+
+.store-list-header {
+  font-weight: 600;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 12px;
+}
+
+.store-list-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #f4f1ec;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.item-priority {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.priority-essential {
+  background: #d4edda;
+  color: #155724;
+}
+
+.priority-recommended {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.priority-optional {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.item-cost {
+  font-size: 12px;
+  color: #5a6573;
+  margin-left: 8px;
+}
+
+.training-week {
+  margin-bottom: 24px;
+}
+
+.training-week h4 {
+  color: #0a7d5a;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.training-day {
+  padding: 12px;
+  background: #f4f1ec;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-left: 4px solid #0a7d5a;
+}
+
+.training-day strong {
+  color: #1a2332;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.training-day small {
+  color: #5a6573;
+  line-height: 1.6;
+}
+
+.meal-timing-card {
+  background: #e7f5ee;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border-left: 4px solid #0a7d5a;
+}
+
+.meal-timing-card strong {
+  color: #0a7d5a;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.streak-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Favorites Selection Grid */
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  max-height: 450px;
+
+/* Result Tabs */
+.result-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.result-tab {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  color: #5a6573;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.result-tab:hover {
+  color: #0a7d5a;
+  background: #f5f7ff;
+}
+
+.result-tab.active {
+  color: #0a7d5a;
+  border-bottom-color: #0a7d5a;
+  font-weight: 600;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Day Accordion */
+.day-accordion {
+  margin-bottom: 12px;
+  border: 1px solid #d8d2c4;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.day-header {
+  padding: 16px;
+  background: #f4f1ec;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.day-header:hover {
+  background: #f0f2f5;
+}
+
+.day-header.expanded {
+  background: #0a7d5a;
+  color: white;
+}
+
+.day-header.expanded .day-stats {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.day-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a2332;
+}
+
+.day-header.expanded .day-title {
+  color: white;
+}
+
+.day-stats {
+  font-size: 13px;
+  color: #5a6573;
+}
+
+.day-chevron {
+  font-size: 20px;
+  transition: transform 0.3s;
+  color: #0a7d5a;
+}
+
+.day-header.expanded .day-chevron {
+  transform: rotate(180deg);
+  color: white;
+}
+
+.day-content {
+  display: none;
+  padding: 16px;
+  background: white;
+}
+
+.day-content.expanded {
+  display: block;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.meal-item {
+  padding: 12px;
+  background: var(--bg-elevated);
+  margin-bottom: 10px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.meal-item:hover {
+  background: #e7f5ee;
+  transform: translateX(4px);
+}
+
+.meal-info {
+  flex: 1;
+}
+
+.meal-name {
+  font-weight: 600;
+  color: #1a2332;
+  margin-bottom: 4px;
+}
+
+.meal-macros {
+  font-size: 13px;
+  color: #5a6573;
+}
+
+.swap-btn {
+  padding: 6px 16px;
+  background: #0a7d5a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.swap-btn:hover {
+  background: #075e44;
+  transform: scale(1.05);
+}
+
+.day-summary {
+  margin-top: 12px;
+  padding: 12px;
+  background: #e7f5ee;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.day-summary-macros {
+  color: #1a2332;
+  font-weight: 500;
+}
+
+.day-summary-cost {
+  color: #0a7d5a;
+  font-weight: 600;
+}
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.favorite-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.favorite-card:hover {
+  border-color: #0a7d5a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(10, 125, 90, 0.15);
+}
+
+.favorite-card.selected {
+  border-color: #0a7d5a;
+  background: linear-gradient(135deg, #f5f7ff, #faf5ff);
+  box-shadow: 0 2px 8px rgba(10, 125, 90, 0.2);
+}
+
+.favorite-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.favorite-card-emoji {
+  font-size: 28px;
+}
+
+.favorite-card-check {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #0a7d5a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: white;
+  background: white;
+}
+
+.favorite-card.selected .favorite-card-check {
+  background: #0a7d5a;
+}
+
+.favorite-card-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1a2332;
+  margin-bottom: 6px;
+}
+
+.favorite-card-details {
+  font-size: 12px;
+  color: #5a6573;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.favorite-card-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-budget {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-medium {
+  background: #fef3c7;
+  color: #856404;
+}
+
+.badge-premium {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.badge-cuisine {
+  background: #e7f3ff;
+  color: #004085;
+}
+
+
+/* ─── Nav overrides ─── */
+  .nav button { 
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 8px 4px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+  .nav button svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+  .nav button.active svg {
+    stroke-width: 2;
+  }
+
+/* ─── Inline patches ─── */
+        body {
+          font-family: Arial, sans-serif;
+          padding: 20px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+        }
+        @media print {
+          body { padding: 0; }
+        }
+
+@media (max-width: 520px) {
+  #custom-routine-card > div:nth-child(2) { grid-template-columns: 1fr !important; }
+}

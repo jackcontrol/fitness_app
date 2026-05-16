@@ -25,6 +25,12 @@ export function getBudget(profile) {
  * Write the budget to all four storage locations atomically.
  * Returns false if the value is not a positive finite number.
  */
+// Default-priced meal-cost estimator. Snacks honour meal.cost when set.
+export function estimateMealCost(meal, mealType) {
+  if (mealType === 'snack') return (meal && meal.cost) || 2.50;
+  return mealType === 'breakfast' ? 4.50 : mealType === 'lunch' ? 5.50 : 6.00;
+}
+
 export function setBudget(v, profile) {
   v = Number(v);
   if (!isFinite(v) || v <= 0) return false;
