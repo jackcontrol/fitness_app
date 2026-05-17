@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm.cmd run *)"
+      "Bash(pnpm.cmd run *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\punkc\\\\OneDrive\\\\Documents\\\\GitHub\\\\fitness_app\")",
+      "Bash(Select-Object Name, Mode)"
     ]
   }
 }
